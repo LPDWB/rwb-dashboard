@@ -54,6 +54,110 @@ module.exports = {
         'xl': '1rem',
         '2xl': '1.5rem',
       },
+      transitionProperty: {
+        'height': 'height',
+        'spacing': 'margin, padding',
+        'width': 'width',
+        'all': 'all',
+      },
+      transitionTimingFunction: {
+        'in-out-quart': 'cubic-bezier(0.76, 0, 0.24, 1)',
+        'in-out-expo': 'cubic-bezier(0.87, 0, 0.13, 1)',
+        'in-out-circ': 'cubic-bezier(0.85, 0, 0.15, 1)',
+      },
+      transitionDuration: {
+        '400': '400ms',
+        '600': '600ms',
+        '800': '800ms',
+        '900': '900ms',
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.5s ease-in-out forwards',
+        'fade-in-up': 'fadeInUp 0.6s ease-in-out forwards',
+        'fade-in-down': 'fadeInDown 0.6s ease-in-out forwards',
+        'fade-out': 'fadeOut 0.5s ease-in-out forwards',
+        'slide-in-right': 'slideInRight 0.5s ease-in-out forwards',
+        'slide-out-right': 'slideOutRight 0.5s ease-in-out forwards',
+        'zoom-in': 'zoomIn 0.3s ease-in-out forwards',
+        'bounce-subtle': 'bounceSoft 2s infinite',
+        'pulse-subtle': 'pulseSoft 3s infinite',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' }
+        },
+        fadeInUp: {
+          '0%': {
+            opacity: '0',
+            transform: 'translateY(20px)'
+          },
+          '100%': {
+            opacity: '1',
+            transform: 'translateY(0)'
+          }
+        },
+        fadeInDown: {
+          '0%': {
+            opacity: '0',
+            transform: 'translateY(-20px)'
+          },
+          '100%': {
+            opacity: '1',
+            transform: 'translateY(0)'
+          }
+        },
+        fadeOut: {
+          '0%': { opacity: '1' },
+          '100%': { opacity: '0' }
+        },
+        slideInRight: {
+          '0%': {
+            opacity: '0',
+            transform: 'translateX(20px)'
+          },
+          '100%': {
+            opacity: '1',
+            transform: 'translateX(0)'
+          }
+        },
+        slideOutRight: {
+          '0%': {
+            opacity: '1',
+            transform: 'translateX(0)'
+          },
+          '100%': {
+            opacity: '0',
+            transform: 'translateX(20px)'
+          }
+        },
+        zoomIn: {
+          '0%': {
+            opacity: '0',
+            transform: 'scale(0.95)'
+          },
+          '100%': {
+            opacity: '1',
+            transform: 'scale(1)'
+          }
+        },
+        bounceSoft: {
+          '0%, 100%': {
+            transform: 'translateY(0)'
+          },
+          '50%': {
+            transform: 'translateY(-5px)'
+          }
+        },
+        pulseSoft: {
+          '0%, 100%': {
+            opacity: '1'
+          },
+          '50%': {
+            opacity: '0.7'
+          }
+        }
+      }
     },
   },
   plugins: [],

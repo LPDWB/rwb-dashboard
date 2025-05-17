@@ -1,6 +1,46 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const popupVariants = {
+  hidden: { 
+    opacity: 0, 
+    scale: 0.9, 
+    y: 20 
+  },
+  visible: { 
+    opacity: 1, 
+    scale: 1, 
+    y: 0,
+    transition: {
+      type: "spring",
+      damping: 25,
+      stiffness: 350,
+      ease: [0.76, 0, 0.24, 1]
+    }
+  },
+  exit: { 
+    opacity: 0, 
+    scale: 0.9, 
+    y: 20,
+    transition: {
+      duration: 0.4,
+      ease: [0.76, 0, 0.24, 1]
+    }
+  }
+};
+
+const messageVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { 
+      duration: 0.4, 
+      ease: [0.76, 0, 0.24, 1]
+    }
+  }
+};
+
 export default function AssistantPopup() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -85,12 +125,21 @@ export default function AssistantPopup() {
       {/* Кнопка чат-ассистента */}
       <motion.button
         id="assistant-button"
-        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 rounded-full flex items-center justify-center text-white shadow-smooth-lg dark:shadow-smooth-dark z-50"
+        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 rounded-full flex items-center justify-center text-white shadow-smooth-lg dark:shadow-smooth-dark z-50 transition-all duration-400 ease-in-out-quart animate-bounce-subtle"
         onClick={() => setIsOpen(!isOpen)}
-        whileHover={{ scale: 1.08, boxShadow: "0 8px 25px rgba(0, 0, 0, 0.15)" }}
-        whileTap={{ scale: 0.95 }}
+        whileHover={{ 
+          scale: 1.08, 
+          boxShadow: "0 8px 25px rgba(0, 0, 0, 0.15)", 
+          transition: { duration: 0.4, ease: [0.76, 0, 0.24, 1] }
+        }}
+        whileTap={{ 
+          scale: 0.95, 
+          transition: { duration: 0.3, ease: [0.76, 0, 0.24, 1] }
+        }}
+        animate={isOpen ? { rotate: 45 } : { rotate: 0 }}
+        transition={{ duration: 0.4, ease: [0.76, 0, 0.24, 1] }}
       >
-        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <svg className="w-7 h-7 transition-all duration-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
         </svg>
       </motion.button>
@@ -100,11 +149,11 @@ export default function AssistantPopup() {
         {isOpen && (
           <motion.div
             id="assistant-popup"
-            className="fixed bottom-24 right-6 w-80 sm:w-96 max-w-[90vw] bg-white dark:bg-dark-200 rounded-2xl shadow-smooth-xl dark:shadow-smooth-dark overflow-hidden z-50 border border-gray-200 dark:border-dark-300"
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 350 }}
+            className="fixed bottom-24 right-6 w-80 sm:w-96 max-w-[90vw] bg-white dark:bg-dark-200 rounded-2xl shadow-smooth-xl dark:shadow-smooth-dark overflow-hidden z-50 border border-gray-200 dark:border-dark-300 animate-fade-in transition-all duration-400 ease-in-out"
+            variants={popupVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
           >
             {/* Заголовок чата */}
             <div className="bg-gray-50 dark:bg-dark-300 px-4 py-3 border-b border-gray-200 dark:border-dark-400 flex justify-between items-center">
@@ -114,14 +163,16 @@ export default function AssistantPopup() {
                 </svg>
                 AI Ассистент
               </h3>
-              <button 
+              <motion.button 
                 onClick={() => setIsOpen(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-all duration-400 ease-in-out p-1 rounded-full hover:bg-gray-100 dark:hover:bg-dark-400"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
-              </button>
+              </motion.button>
             </div>
             
             {/* Область сообщений */}
@@ -130,15 +181,16 @@ export default function AssistantPopup() {
                 <motion.div 
                   key={index}
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
+                  variants={messageVariants}
+                  initial="hidden"
+                  animate="visible"
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
                 >
                   <div 
                     className={`max-w-[85%] p-3 rounded-xl ${
                       message.role === 'user' 
-                        ? 'bg-primary-500 text-white rounded-tr-none shadow-smooth' 
-                        : 'bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-tl-none shadow-smooth dark:shadow-smooth-dark'
+                        ? 'bg-primary-500 text-white rounded-tr-none shadow-smooth transition-all duration-400 ease-in-out-quart hover:shadow-smooth-lg' 
+                        : 'bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-tl-none shadow-smooth dark:shadow-smooth-dark transition-all duration-400 ease-in-out-quart hover:shadow-smooth-lg'
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{message.content}</p>
@@ -161,7 +213,7 @@ export default function AssistantPopup() {
                   className="flex justify-start"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: 0.3, ease: [0.76, 0, 0.24, 1] }}
                 >
                   <div className="bg-white dark:bg-dark-200 p-3 rounded-xl rounded-tl-none shadow-smooth dark:shadow-smooth-dark">
                     <div className="flex space-x-1 items-center">
@@ -182,17 +234,19 @@ export default function AssistantPopup() {
                 id="message-input"
                 type="text"
                 placeholder="Введите сообщение..."
-                className="flex-1 px-4 py-2 rounded-l-lg bg-gray-50 dark:bg-dark-300 border-0 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400"
+                className="flex-1 px-4 py-2 rounded-l-lg bg-gray-50 dark:bg-dark-300 border-0 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-400 ease-in-out"
                 autoComplete="off"
               />
-              <button
+              <motion.button
                 type="submit"
-                className="px-4 py-2 bg-primary-500 hover:bg-primary-600 dark:hover:bg-primary-700 transition-colors text-white rounded-r-lg flex items-center"
+                className="px-4 py-2 bg-primary-500 hover:bg-primary-600 dark:hover:bg-primary-700 transition-all duration-400 ease-in-out-quart text-white rounded-r-lg flex items-center"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.98 }}
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
-              </button>
+              </motion.button>
             </form>
           </motion.div>
         )}
