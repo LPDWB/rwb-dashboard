@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
+import DataTable from "../components/DataTable";
+import BarChartComponent from "../components/BarChartComponent";
 
 export default function Home() {
   const [data, setData] = useState([]);
@@ -49,9 +51,10 @@ export default function Home() {
           className="mb-4 block w-full text-sm text-gray-900 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded cursor-pointer"
         />
         {data.length > 0 && (
-          <pre className="text-xs overflow-auto max-h-[400px]">
-            {JSON.stringify(data, null, 2)}
-          </pre>
+          <>
+            <BarChartComponent data={data} />
+            <DataTable data={data} />
+          </>
         )}
         {data.length === 0 && <p className="text-sm">Загрузите Excel-файл для отображения данных.</p>}
       </div>
