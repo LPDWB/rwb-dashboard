@@ -39,8 +39,8 @@ const ExplanationModal = ({ isOpen, onClose, row, headers }) => {
   useEffect(() => {
     if (isOpen) {
       // Try to get API key from environment or localStorage
-      const storedKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || 
-                       (typeof window !== 'undefined' ? localStorage.getItem('openai_api_key') : '');
+      const storedKey = process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY || 
+                       (typeof window !== 'undefined' ? localStorage.getItem('huggingface_api_key') : '');
       setApiKey(storedKey);
       
       if (storedKey) {
@@ -57,37 +57,31 @@ const ExplanationModal = ({ isOpen, onClose, row, headers }) => {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${key}`
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            {
-              role: 'system',
-              content: 'Ты - помощник по анализу данных. Твоя задача - объяснять содержимое строк таблицы на русском языке.'
-            },
-            {
-              role: 'user',
-              content: `Поясни содержимое этой строки таблицы на русском языке. Объясни, что означает каждый статус и какие действия нужно предпринять:\n${JSON.stringify(row, null, 2)}`
-            }
-          ],
-          max_tokens: 400,
-          temperature: 0.7
+          inputs: `Поясни строку таблицы:\n${JSON.stringify(row, null, 2)}`,
+          options: { wait_for_model: true }
         })
       });
 
       if (!response.ok) {
-        throw new Error('Ошибка при получении ответа от GPT');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Ошибка при получении ответа от модели');
       }
 
       const data = await response.json();
-      setExplanation(data.choices[0].message.content);
+      if (!data || !data[0] || !data[0].generated_text) {
+        throw new Error('Неверный формат ответа от модели');
+      }
+
+      setExplanation(data[0].generated_text);
     } catch (error) {
-      console.error('GPT API error:', error);
+      console.error('Hugging Face API error:', error);
       setError(error.message);
     } finally {
       setIsLoading(false);
@@ -103,7 +97,7 @@ const ExplanationModal = ({ isOpen, onClose, row, headers }) => {
   const handleApiKeySubmit = (e) => {
     e.preventDefault();
     if (apiKey.trim()) {
-      localStorage.setItem('openai_api_key', apiKey.trim());
+      localStorage.setItem('huggingface_api_key', apiKey.trim());
       generateExplanation(row, apiKey.trim());
     }
   };
@@ -155,14 +149,14 @@ const ExplanationModal = ({ isOpen, onClose, row, headers }) => {
               </div>
 
               {/* API Key Input (if not set) */}
-              {!process.env.NEXT_PUBLIC_OPENAI_API_KEY && !localStorage.getItem('openai_api_key') && (
+              {!process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY && !localStorage.getItem('huggingface_api_key') && (
                 <form onSubmit={handleApiKeySubmit} className="mb-4">
                   <div className="flex gap-2">
                     <input
                       type="password"
                       value={apiKey}
                       onChange={(e) => setApiKey(e.target.value)}
-                      placeholder="Введите OpenAI API ключ"
+                      placeholder="Введите Hugging Face API ключ"
                       className="flex-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-dark-300 border-0 ring-1 ring-gray-200 dark:ring-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 text-gray-700 dark:text-gray-300"
                     />
                     <motion.button
@@ -174,6 +168,17 @@ const ExplanationModal = ({ isOpen, onClose, row, headers }) => {
                       Сохранить
                     </motion.button>
                   </div>
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    Получите API ключ на{' '}
+                    <a 
+                      href="https://huggingface.co/settings/tokens" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
+                    >
+                      huggingface.co/settings/tokens
+                    </a>
+                  </p>
                 </form>
               )}
 
