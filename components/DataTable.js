@@ -29,6 +29,115 @@ const setLocalStorage = (key, value) => {
   }
 };
 
+// AI Explanation Modal Component
+const ExplanationModal = ({ isOpen, onClose, row, headers }) => {
+  const [explanation, setExplanation] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsLoading(true);
+      // Simulate API call delay
+      setTimeout(() => {
+        generateExplanation(row);
+        setIsLoading(false);
+      }, 1000);
+    }
+  }, [isOpen, row]);
+
+  const generateExplanation = (row) => {
+    // This is a placeholder for future GPT integration
+    const status = row.status || row.Status || '';
+    const explanation = `Строка содержит статус ${status} — это означает 'Раскладка перемещения'. Рекомендуется проверить МХ и убедиться в корректности перемещения.`;
+    setExplanation(explanation);
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-white dark:bg-dark-200 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-4 border-b border-gray-100 dark:border-dark-300 flex items-center justify-between">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                Пояснение строки
+              </h3>
+              <motion.button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                ✕
+              </motion.button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 overflow-y-auto max-h-[calc(90vh-8rem)]">
+              {/* Row Data */}
+              <div className="mb-4">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Данные строки:
+                </h4>
+                <div className="bg-gray-50 dark:bg-dark-300 rounded-lg p-3 overflow-x-auto">
+                  <pre className="text-sm text-gray-600 dark:text-gray-400">
+                    {JSON.stringify(row, null, 2)}
+                  </pre>
+                </div>
+              </div>
+
+              {/* AI Explanation */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  AI-Пояснение:
+                </h4>
+                <div className="bg-gray-50 dark:bg-dark-300 rounded-lg p-3">
+                  {isLoading ? (
+                    <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full"
+                      />
+                      <span>Генерация пояснения...</span>
+                    </div>
+                  ) : (
+                    <p className="text-gray-600 dark:text-gray-400">{explanation}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-gray-100 dark:border-dark-300 flex justify-end">
+              <motion.button
+                onClick={onClose}
+                className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-sm"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Закрыть
+              </motion.button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 export default function DataTable({ data }) {
   const [headers, setHeaders] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,6 +146,8 @@ export default function DataTable({ data }) {
   const [isExporting, setIsExporting] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [showExplanation, setShowExplanation] = useState(false);
   const itemsPerPage = 10;
 
   // Initialize state from localStorage after mount
@@ -255,6 +366,12 @@ export default function DataTable({ data }) {
     return items;
   };
 
+  // Handle row explanation
+  const handleRowExplanation = (row) => {
+    setSelectedRow(row);
+    setShowExplanation(true);
+  };
+
   if (!data || !data.length) return null;
 
   return (
@@ -319,6 +436,7 @@ export default function DataTable({ data }) {
                   </div>
                 </th>
               ))}
+              <th className="px-6 py-4 w-12"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-dark-300">
@@ -326,7 +444,7 @@ export default function DataTable({ data }) {
               {currentData.map((row, rowIndex) => (
                 <motion.tr 
                   key={rowIndex} 
-                  className="bg-white dark:bg-dark-200 hover:bg-gray-50 dark:hover:bg-dark-300 transition-colors"
+                  className="group bg-white dark:bg-dark-200 hover:bg-gray-50 dark:hover:bg-dark-300 transition-colors"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
@@ -337,6 +455,16 @@ export default function DataTable({ data }) {
                       {row[header]?.toString() || ''}
                     </td>
                   ))}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <motion.button
+                      onClick={() => handleRowExplanation(row)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-primary-500 dark:hover:text-primary-400"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      🤖
+                    </motion.button>
+                  </td>
                 </motion.tr>
               ))}
             </AnimatePresence>
@@ -375,6 +503,14 @@ export default function DataTable({ data }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Explanation Modal */}
+      <ExplanationModal
+        isOpen={showExplanation}
+        onClose={() => setShowExplanation(false)}
+        row={selectedRow}
+        headers={headers}
+      />
     </div>
   );
 } 
