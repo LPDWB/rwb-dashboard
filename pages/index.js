@@ -5,6 +5,8 @@ import BarChartComponent from "../components/BarChartComponent";
 import Tabs from "../components/Tabs";
 import AssistantPopup from "../components/AssistantPopup";
 import AssistantChat from "../components/AssistantChat";
+import FormulaAssistant from "../components/FormulaAssistant";
+import CollapsibleSection from "../components/CollapsibleSection";
 
 export default function Home() {
   const [data, setData] = useState([]);
@@ -130,8 +132,19 @@ export default function Home() {
   const AssistantContent = () => (
     <div className="transition-all duration-300 ease-in-out">
       <FileUploader />
-      <div className="mt-6 h-[600px]">
-        <AssistantChat data={data} />
+      <div className="mt-6 space-y-6">
+        <div className="max-h-[600px] overflow-y-auto rounded-lg">
+          <AssistantChat data={data} />
+        </div>
+        <CollapsibleSection 
+          title="🧮 Формулы ▾"
+          defaultExpanded={true}
+          onExpand={() => {
+            // Focus will be handled by FormulaAssistant's onMount prop
+          }}
+        >
+          <FormulaAssistant onMount={true} />
+        </CollapsibleSection>
       </div>
     </div>
   );
