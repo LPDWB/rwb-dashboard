@@ -13,11 +13,31 @@ const messageVariants = {
   }
 };
 
-export default function AssistantChat() {
+const analysisMessageVariants = {
+  hidden: { 
+    opacity: 0, 
+    y: 20,
+    scale: 0.95
+  },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    scale: 1,
+    transition: { 
+      type: "spring",
+      damping: 25,
+      stiffness: 350,
+      ease: [0.76, 0, 0.24, 1]
+    }
+  }
+};
+
+export default function AssistantChat({ data = [] }) {
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Привет! Я могу помочь тебе интерпретировать данные из Excel. Просто задай вопрос.', time: new Date() },
   ]);
   const [isTyping, setIsTyping] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const messagesEndRef = useRef(null);
   
   // Auto-scroll to latest message
@@ -26,6 +46,24 @@ export default function AssistantChat() {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  const handleAnalyzeData = () => {
+    setIsAnalyzing(true);
+    setIsTyping(true);
+    
+    setTimeout(() => {
+      setIsTyping(false);
+      const analysisMessage = data.length > 0
+        ? `По загруженным данным найдено ${data.length} записей. Основной статус: WLT. Выявлены аномалии в строках с пустыми ячейками. Рекомендуется перепроверить статусы UGL.`
+        : 'Сначала загрузите Excel-файл для анализа.';
+      
+      setMessages(prev => [
+        ...prev,
+        { role: 'assistant', content: analysisMessage, time: new Date(), isAnalysis: true }
+      ]);
+      setIsAnalyzing(false);
+    }, 2000);
+  };
 
   const getAIResponse = (message) => {
     const lowerMessage = message.toLowerCase();
@@ -75,6 +113,25 @@ export default function AssistantChat() {
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-dark-200 rounded-lg shadow-lg">
+      {/* Analysis button */}
+      <div className="bg-gradient-to-b from-gray-50 to-gray-100 dark:from-dark-300 dark:to-dark-400 px-4 py-4 border-b border-gray-200 dark:border-dark-400">
+        <motion.button
+          onClick={handleAnalyzeData}
+          disabled={isAnalyzing}
+          className="w-full px-4 py-3 bg-primary-500 hover:bg-primary-600 dark:hover:bg-primary-700 text-white rounded-lg flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <motion.span
+            animate={isAnalyzing ? { rotate: 360 } : { rotate: 0 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          >
+            🔍
+          </motion.span>
+          <span>{isAnalyzing ? 'Анализируем...' : 'Проанализировать данные'}</span>
+        </motion.button>
+      </div>
+
       {/* Chat header */}
       <div className="bg-gray-50 dark:bg-dark-300 px-4 py-3 border-b border-gray-200 dark:border-dark-400">
         <h3 className="font-medium text-gray-800 dark:text-gray-200 flex items-center">
@@ -92,7 +149,7 @@ export default function AssistantChat() {
             <motion.div 
               key={index}
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} items-end gap-2`}
-              variants={messageVariants}
+              variants={message.isAnalysis ? analysisMessageVariants : messageVariants}
               initial="hidden"
               animate="visible"
               transition={{ duration: 0.3, delay: index * 0.1 }}
@@ -106,7 +163,9 @@ export default function AssistantChat() {
                 className={`max-w-[85%] p-3 rounded-xl ${
                   message.role === 'user' 
                     ? 'bg-primary-500 text-white rounded-tr-none shadow-smooth' 
-                    : 'bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-tl-none shadow-smooth dark:shadow-smooth-dark'
+                    : message.isAnalysis
+                      ? 'bg-primary-50 dark:bg-primary-900/20 text-gray-800 dark:text-gray-200 rounded-tl-none shadow-smooth dark:shadow-smooth-dark border border-primary-100 dark:border-primary-800'
+                      : 'bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-tl-none shadow-smooth dark:shadow-smooth-dark'
                 }`}
               >
                 <p className="whitespace-pre-wrap">{message.content}</p>

@@ -131,7 +131,7 @@ export default function Home() {
     <div className="transition-all duration-300 ease-in-out">
       <FileUploader />
       <div className="mt-6 h-[600px]">
-        <AssistantChat />
+        <AssistantChat data={data} />
       </div>
     </div>
   );
