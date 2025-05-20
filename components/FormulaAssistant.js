@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const STORAGE_KEYS = {
+  LAST_PROMPT: 'rwb_formula_last_prompt',
+  LAST_FORMULA: 'rwb_formula_last_result'
+};
+
 const variants = {
   hidden: { 
     opacity: 0, 
@@ -21,12 +26,31 @@ const variants = {
 };
 
 export default function FormulaAssistant({ onMount }) {
-  const [input, setInput] = useState('');
-  const [formula, setFormula] = useState('');
+  const [input, setInput] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.LAST_PROMPT);
+    return saved ? JSON.parse(saved) : '';
+  });
+  const [formula, setFormula] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.LAST_FORMULA);
+    return saved ? JSON.parse(saved) : '';
+  });
   const [isGenerating, setIsGenerating] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
   const [isHighlighted, setIsHighlighted] = useState(false);
   const inputRef = useRef(null);
+
+  // Save input and formula to localStorage
+  useEffect(() => {
+    if (input) {
+      localStorage.setItem(STORAGE_KEYS.LAST_PROMPT, JSON.stringify(input));
+    }
+  }, [input]);
+
+  useEffect(() => {
+    if (formula) {
+      localStorage.setItem(STORAGE_KEYS.LAST_FORMULA, JSON.stringify(formula));
+    }
+  }, [formula]);
 
   useEffect(() => {
     if (onMount && inputRef.current) {

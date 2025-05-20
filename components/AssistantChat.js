@@ -1,6 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const STORAGE_KEYS = {
+  CHAT_HISTORY: 'rwb_chat_history',
+  ARCHIVE_PREFIX: 'rwb_archive_'
+};
+
+const DEFAULT_MESSAGES = [
+  { role: 'assistant', content: 'Привет! Я могу помочь тебе интерпретировать данные из Excel. Просто задай вопрос.', time: new Date() }
+];
+
+const EXPIRATION_TIME = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
 const messageVariants = {
   hidden: { opacity: 0, y: 10 },
   visible: { 
@@ -33,19 +44,77 @@ const analysisMessageVariants = {
 };
 
 export default function AssistantChat({ data = [] }) {
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Привет! Я могу помочь тебе интерпретировать данные из Excel. Просто задай вопрос.', time: new Date() },
-  ]);
+  const [messages, setMessages] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.CHAT_HISTORY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return parsed.messages || DEFAULT_MESSAGES;
+    }
+    return DEFAULT_MESSAGES;
+  });
   const [isTyping, setIsTyping] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showExpirationModal, setShowExpirationModal] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
   const messagesEndRef = useRef(null);
   
+  // Check for chat expiration on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.CHAT_HISTORY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.timestamp && !parsed.archived) {
+        const timeSinceLastUpdate = Date.now() - parsed.timestamp;
+        if (timeSinceLastUpdate > EXPIRATION_TIME) {
+          setShowExpirationModal(true);
+        }
+      }
+    }
+  }, []);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    const chatData = {
+      messages,
+      timestamp: Date.now(),
+      archived: false
+    };
+    localStorage.setItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(chatData));
+  }, [messages]);
+
   // Auto-scroll to latest message
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  const showToastMessage = (message) => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const handleArchive = () => {
+    const archiveId = Date.now();
+    const archiveData = {
+      messages,
+      archivedAt: new Date().toISOString(),
+      title: `Чат от ${new Date().toLocaleDateString()}`
+    };
+    
+    localStorage.setItem(`${STORAGE_KEYS.ARCHIVE_PREFIX}${archiveId}`, JSON.stringify(archiveData));
+    setMessages(DEFAULT_MESSAGES);
+    setShowExpirationModal(false);
+    showToastMessage('Чат успешно архивирован');
+  };
+
+  const handleDelete = () => {
+    setMessages(DEFAULT_MESSAGES);
+    setShowExpirationModal(false);
+    showToastMessage('Чат удален');
+  };
 
   const handleAnalyzeData = () => {
     setIsAnalyzing(true);
@@ -54,8 +123,12 @@ export default function AssistantChat({ data = [] }) {
     setTimeout(() => {
       setIsTyping(false);
       const analysisMessage = data.length > 0
-        ? `По загруженным данным найдено ${data.length} записей. Основной статус: WLT. Выявлены аномалии в строках с пустыми ячейками. Рекомендуется перепроверить статусы UGL.`
-        : 'Сначала загрузите Excel-файл для анализа.';
+        ? "Анализ данных показывает следующие результаты:\n\n" +
+          "1. Общее количество записей: " + data.length + "\n" +
+          "2. Основные статусы: " + [...new Set(data.map(item => item.status))].join(", ") + "\n" +
+          "3. Период данных: " + new Date(Math.min(...data.map(item => new Date(item.date)))).toLocaleDateString() + 
+          " - " + new Date(Math.max(...data.map(item => new Date(item.date)))).toLocaleDateString()
+        : "Пожалуйста, загрузите Excel-файл для анализа данных.";
       
       setMessages(prev => [
         ...prev,
@@ -113,6 +186,66 @@ export default function AssistantChat({ data = [] }) {
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-dark-200 rounded-lg shadow-lg">
+      {/* Expiration Modal */}
+      <AnimatePresence>
+        {showExpirationModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-dark-200 rounded-xl p-6 max-w-md w-full shadow-xl"
+            >
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                Чат неактивен более 24 часов
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Выберите действие для этого чата:
+              </p>
+              <div className="flex flex-col gap-3">
+                <motion.button
+                  onClick={handleArchive}
+                  className="w-full px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg flex items-center justify-center gap-2"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <span>✅</span>
+                  <span>Архивировать чат</span>
+                </motion.button>
+                <motion.button
+                  onClick={handleDelete}
+                  className="w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center justify-center gap-2"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <span>🗑️</span>
+                  <span>Удалить чат</span>
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg z-50"
+          >
+            {toastMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Analysis button */}
       <div className="bg-gradient-to-b from-gray-50 to-gray-100 dark:from-dark-300 dark:to-dark-400 px-4 py-4 border-b border-gray-200 dark:border-dark-400">
         <motion.button
