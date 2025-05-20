@@ -37,13 +37,17 @@ const setLocalStorage = (key, value) => {
 export default function Home() {
   const [data, setData] = useState([]);
   const [isDark, setIsDark] = useState(false);
-  const [activeSection, setActiveSection] = useState(() => 
-    getLocalStorage(STORAGE_KEYS.ACTIVE_SECTION, 'charts')
-  );
+  const [activeSection, setActiveSection] = useState('charts');
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
-  const [uploadHistory, setUploadHistory] = useState(() => 
-    getLocalStorage(STORAGE_KEYS.UPLOAD_HISTORY, [])
-  );
+  const [uploadHistory, setUploadHistory] = useState([]);
+
+  // Initialize state from localStorage after mount
+  useEffect(() => {
+    const savedSection = getLocalStorage(STORAGE_KEYS.ACTIVE_SECTION, 'charts');
+    const savedHistory = getLocalStorage(STORAGE_KEYS.UPLOAD_HISTORY, []);
+    setActiveSection(savedSection);
+    setUploadHistory(savedHistory);
+  }, []);
 
   // Save active section to localStorage
   useEffect(() => {

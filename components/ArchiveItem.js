@@ -36,14 +36,17 @@ export default function ArchiveItem({ file, onLoad, onRename }) {
   const [customTitle, setCustomTitle] = useState(file.customTitle || '');
   const [isExporting, setIsExporting] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
-  const [isLocked, setIsLocked] = useState(() => {
-    const lockedArchives = getLocalStorage(STORAGE_KEYS.LOCKED_ARCHIVES, []);
-    return lockedArchives.includes(file.id);
-  });
+  const [isLocked, setIsLocked] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const exportDropdownRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Initialize lock state from localStorage after mount
+  useEffect(() => {
+    const lockedArchives = getLocalStorage(STORAGE_KEYS.LOCKED_ARCHIVES, []);
+    setIsLocked(lockedArchives.includes(file.id));
+  }, [file.id]);
 
   // Close export dropdown when clicking outside
   useEffect(() => {
