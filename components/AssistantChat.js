@@ -43,15 +43,30 @@ const analysisMessageVariants = {
   }
 };
 
+// Helper function to safely access localStorage
+const getLocalStorage = (key, defaultValue) => {
+  if (typeof window === 'undefined') return defaultValue;
+  try {
+    const item = window.localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch (error) {
+    console.error('Error reading from localStorage:', error);
+    return defaultValue;
+  }
+};
+
+// Helper function to safely set localStorage
+const setLocalStorage = (key, value) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error('Error writing to localStorage:', error);
+  }
+};
+
 export default function AssistantChat({ data = [] }) {
-  const [messages, setMessages] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.CHAT_HISTORY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return parsed.messages || DEFAULT_MESSAGES;
-    }
-    return DEFAULT_MESSAGES;
-  });
+  const [messages, setMessages] = useState(DEFAULT_MESSAGES);
   const [isTyping, setIsTyping] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showExpirationModal, setShowExpirationModal] = useState(false);
@@ -59,16 +74,21 @@ export default function AssistantChat({ data = [] }) {
   const [toastMessage, setToastMessage] = useState('');
   const messagesEndRef = useRef(null);
   
+  // Initialize messages from localStorage after mount
+  useEffect(() => {
+    const saved = getLocalStorage(STORAGE_KEYS.CHAT_HISTORY, null);
+    if (saved) {
+      setMessages(saved.messages || DEFAULT_MESSAGES);
+    }
+  }, []);
+
   // Check for chat expiration on mount
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.CHAT_HISTORY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed.timestamp && !parsed.archived) {
-        const timeSinceLastUpdate = Date.now() - parsed.timestamp;
-        if (timeSinceLastUpdate > EXPIRATION_TIME) {
-          setShowExpirationModal(true);
-        }
+    const saved = getLocalStorage(STORAGE_KEYS.CHAT_HISTORY, null);
+    if (saved && saved.timestamp && !saved.archived) {
+      const timeSinceLastUpdate = Date.now() - saved.timestamp;
+      if (timeSinceLastUpdate > EXPIRATION_TIME) {
+        setShowExpirationModal(true);
       }
     }
   }, []);
@@ -80,7 +100,7 @@ export default function AssistantChat({ data = [] }) {
       timestamp: Date.now(),
       archived: false
     };
-    localStorage.setItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(chatData));
+    setLocalStorage(STORAGE_KEYS.CHAT_HISTORY, chatData);
   }, [messages]);
 
   // Auto-scroll to latest message
@@ -104,7 +124,7 @@ export default function AssistantChat({ data = [] }) {
       title: `Чат от ${new Date().toLocaleDateString()}`
     };
     
-    localStorage.setItem(`${STORAGE_KEYS.ARCHIVE_PREFIX}${archiveId}`, JSON.stringify(archiveData));
+    setLocalStorage(`${STORAGE_KEYS.ARCHIVE_PREFIX}${archiveId}`, archiveData);
     setMessages(DEFAULT_MESSAGES);
     setShowExpirationModal(false);
     showToastMessage('Чат успешно архивирован');
@@ -207,7 +227,7 @@ export default function AssistantChat({ data = [] }) {
               <p className="text-gray-600 dark:text-gray-400 mb-6">
                 Выберите действие для этого чата:
               </p>
-              <div className="flex flex-col gap-3">
+              <div className="space-y-3">
                 <motion.button
                   onClick={handleArchive}
                   className="w-full px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg flex items-center justify-center gap-2"
@@ -247,7 +267,7 @@ export default function AssistantChat({ data = [] }) {
       </AnimatePresence>
 
       {/* Analysis button */}
-      <div className="bg-gradient-to-b from-gray-50 to-gray-100 dark:from-dark-300 dark:to-dark-400 px-4 py-4 border-b border-gray-200 dark:border-dark-400">
+      <div className="p-4">
         <motion.button
           onClick={handleAnalyzeData}
           disabled={isAnalyzing}
@@ -276,7 +296,7 @@ export default function AssistantChat({ data = [] }) {
       </div>
       
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-dark-100">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         <AnimatePresence>
           {messages.map((message, index) => (
             <motion.div 
@@ -346,7 +366,7 @@ export default function AssistantChat({ data = [] }) {
       </div>
       
       {/* Message input form */}
-      <form onSubmit={handleSendMessage} className="border-t border-gray-200 dark:border-dark-400 p-3 bg-white dark:bg-dark-200">
+      <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200 dark:border-dark-400">
         <div className="flex">
           <input
             id="chat-input"
