@@ -5,6 +5,28 @@ const STORAGE_KEYS = {
   SIDEBAR_EXPANDED: 'rwb_sidebar_expanded'
 };
 
+// Helper function to safely access localStorage
+const getLocalStorage = (key, defaultValue) => {
+  if (typeof window === 'undefined') return defaultValue;
+  try {
+    const item = window.localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch (error) {
+    console.error('Error reading from localStorage:', error);
+    return defaultValue;
+  }
+};
+
+// Helper function to safely set localStorage
+const setLocalStorage = (key, value) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error('Error writing to localStorage:', error);
+  }
+};
+
 const sections = [
   { id: 'charts', icon: '📊', label: 'Графики' },
   { id: 'table', icon: '📋', label: 'Таблица' },
@@ -12,19 +34,24 @@ const sections = [
 ];
 
 export default function Sidebar({ activeSection, onSectionChange }) {
-  const [isExpanded, setIsExpanded] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.SIDEBAR_EXPANDED);
-    return saved ? JSON.parse(saved) : true;
-  });
+  const [isExpanded, setIsExpanded] = useState(true); // Default to true
   const [isMobile, setIsMobile] = useState(false);
+
+  // Initialize expanded state from localStorage after mount
+  useEffect(() => {
+    const saved = getLocalStorage(STORAGE_KEYS.SIDEBAR_EXPANDED, true);
+    setIsExpanded(saved);
+  }, []);
 
   // Save expanded state to localStorage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.SIDEBAR_EXPANDED, JSON.stringify(isExpanded));
+    setLocalStorage(STORAGE_KEYS.SIDEBAR_EXPANDED, isExpanded);
   }, [isExpanded]);
 
   // Check for mobile view
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
       if (window.innerWidth < 768) {

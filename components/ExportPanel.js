@@ -15,43 +15,69 @@ const STORAGE_KEYS = {
   LAST_FORMAT: 'rwb_export_last_format'
 };
 
+// Helper function to safely access localStorage
+const getLocalStorage = (key, defaultValue) => {
+  if (typeof window === 'undefined') return defaultValue;
+  try {
+    const item = window.localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch (error) {
+    console.error('Error reading from localStorage:', error);
+    return defaultValue;
+  }
+};
+
+// Helper function to safely set localStorage
+const setLocalStorage = (key, value) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error('Error writing to localStorage:', error);
+  }
+};
+
 export default function ExportPanel({ data = [] }) {
-  const [isExpanded, setIsExpanded] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.EXPANDED);
-    return saved ? JSON.parse(saved) : true;
-  });
+  const [isExpanded, setIsExpanded] = useState(true); // Default to true
   const [isExporting, setIsExporting] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [activeFormat, setActiveFormat] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.LAST_FORMAT);
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [activeFormat, setActiveFormat] = useState(null); // Default to null
   const dropdownRef = useRef(null);
+
+  // Initialize state from localStorage after mount
+  useEffect(() => {
+    const savedExpanded = getLocalStorage(STORAGE_KEYS.EXPANDED, true);
+    const savedFormat = getLocalStorage(STORAGE_KEYS.LAST_FORMAT, null);
+    setIsExpanded(savedExpanded);
+    setActiveFormat(savedFormat);
+  }, []);
 
   // Save expanded state to localStorage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.EXPANDED, JSON.stringify(isExpanded));
+    setLocalStorage(STORAGE_KEYS.EXPANDED, isExpanded);
   }, [isExpanded]);
 
   // Save last used format to localStorage
   useEffect(() => {
     if (activeFormat) {
-      localStorage.setItem(STORAGE_KEYS.LAST_FORMAT, JSON.stringify(activeFormat));
+      setLocalStorage(STORAGE_KEYS.LAST_FORMAT, activeFormat);
     }
   }, [activeFormat]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowDropdown(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    window.document.addEventListener('mousedown', handleClickOutside);
+    return () => window.document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const showErrorToast = (message) => {
