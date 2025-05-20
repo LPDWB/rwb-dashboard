@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
+import { useSession, signIn, signOut } from 'next-auth/react';
 
 const STORAGE_KEYS = {
   SORT_CONFIG: 'rwb_table_sort_config',
@@ -29,12 +30,54 @@ const setLocalStorage = (key, value) => {
   }
 };
 
+// User Profile Component
+const UserProfile = ({ user, onSignOut }) => {
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  return (
+    <div className="relative">
+      <motion.button
+        onClick={() => setShowDropdown(!showDropdown)}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-dark-300 hover:bg-gray-200 dark:hover:bg-dark-400 transition-colors"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        <span className="text-gray-700 dark:text-gray-300">
+          {user.name || user.email}
+        </span>
+        <span className="text-gray-500">▼</span>
+      </motion.button>
+
+      <AnimatePresence>
+        {showDropdown && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute right-0 mt-2 w-48 bg-white dark:bg-dark-200 rounded-lg shadow-lg overflow-hidden"
+          >
+            <motion.button
+              onClick={onSignOut}
+              className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-300 transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Выйти
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 // AI Explanation Modal Component
 const ExplanationModal = ({ isOpen, onClose, row, headers }) => {
   const [explanation, setExplanation] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [apiKey, setApiKey] = useState('');
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -152,13 +195,24 @@ const ExplanationModal = ({ isOpen, onClose, row, headers }) => {
               {!process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY && !localStorage.getItem('huggingface_api_key') && (
                 <form onSubmit={handleApiKeySubmit} className="mb-4">
                   <div className="flex gap-2">
-                    <input
-                      type="password"
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      placeholder="Введите Hugging Face API ключ"
-                      className="flex-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-dark-300 border-0 ring-1 ring-gray-200 dark:ring-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 text-gray-700 dark:text-gray-300"
-                    />
+                    <div className="relative flex-1">
+                      <input
+                        type="password"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                        placeholder="Введите Hugging Face API ключ"
+                        className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-dark-300 border-0 ring-1 ring-gray-200 dark:ring-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 text-gray-700 dark:text-gray-300"
+                      />
+                      <motion.button
+                        type="button"
+                        onClick={() => setShowHelp(!showHelp)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        ℹ️
+                      </motion.button>
+                    </div>
                     <motion.button
                       type="submit"
                       className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-sm"
@@ -168,6 +222,49 @@ const ExplanationModal = ({ isOpen, onClose, row, headers }) => {
                       Сохранить
                     </motion.button>
                   </div>
+
+                  {/* Help Tooltip */}
+                  <AnimatePresence>
+                    {showHelp && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute mt-2 p-4 bg-white dark:bg-dark-300 rounded-lg shadow-lg border border-gray-200 dark:border-dark-400 max-w-md z-50"
+                      >
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">
+                          🔐 Как получить Hugging Face API-ключ:
+                        </h4>
+                        <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                          <li>
+                            Перейдите на{' '}
+                            <a
+                              href="https://huggingface.co/join"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
+                            >
+                              https://huggingface.co/join
+                            </a>
+                          </li>
+                          <li>Зарегистрируйтесь (можно через Google)</li>
+                          <li>Перейдите в Settings → Access Tokens</li>
+                          <li>Нажмите кнопку "New token"</li>
+                          <li>Выберите Read (доступ "только для чтения")</li>
+                          <li>Скопируйте ключ и вставьте его сюда</li>
+                        </ol>
+                        <motion.button
+                          onClick={() => setShowHelp(false)}
+                          className="mt-3 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          Закрыть
+                        </motion.button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                     Получите API ключ на{' '}
                     <a 
@@ -242,6 +339,7 @@ const ExplanationModal = ({ isOpen, onClose, row, headers }) => {
 };
 
 export default function DataTable({ data }) {
+  const { data: session, status } = useSession();
   const [headers, setHeaders] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
@@ -252,6 +350,16 @@ export default function DataTable({ data }) {
   const [selectedRow, setSelectedRow] = useState(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const itemsPerPage = 10;
+
+  // Save user info to localStorage when session changes
+  useEffect(() => {
+    if (session?.user) {
+      localStorage.setItem('user', JSON.stringify({
+        name: session.user.name,
+        email: session.user.email
+      }));
+    }
+  }, [session]);
 
   // Initialize state from localStorage after mount
   useEffect(() => {
@@ -479,7 +587,7 @@ export default function DataTable({ data }) {
 
   return (
     <div className="w-full">
-      {/* Search and Export panel */}
+      {/* Search, Export, and Auth panel */}
       <div className="p-4 bg-white dark:bg-dark-200 flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 dark:border-dark-300">
         <div className="relative flex-1 min-w-[200px]">
           <input
@@ -511,6 +619,25 @@ export default function DataTable({ data }) {
             <span>📤</span>
             <span>{isExporting ? 'Экспорт...' : 'Экспорт'}</span>
           </motion.button>
+
+          {status === 'authenticated' ? (
+            <UserProfile user={session.user} onSignOut={() => signOut()} />
+          ) : (
+            <motion.button
+              onClick={() => signIn('google')}
+              className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg flex items-center gap-2 text-sm"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path
+                  fill="currentColor"
+                  d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"
+                />
+              </svg>
+              Войти
+            </motion.button>
+          )}
         </div>
       </div>
 
