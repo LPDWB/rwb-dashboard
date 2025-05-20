@@ -33,23 +33,79 @@ const setLocalStorage = (key, value) => {
 const ExplanationModal = ({ isOpen, onClose, row, headers }) => {
   const [explanation, setExplanation] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [apiKey, setApiKey] = useState('');
 
   useEffect(() => {
     if (isOpen) {
-      setIsLoading(true);
-      // Simulate API call delay
-      setTimeout(() => {
-        generateExplanation(row);
+      // Try to get API key from environment or localStorage
+      const storedKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || 
+                       (typeof window !== 'undefined' ? localStorage.getItem('openai_api_key') : '');
+      setApiKey(storedKey);
+      
+      if (storedKey) {
+        generateExplanation(row, storedKey);
+      } else {
+        setError('API ключ не найден');
         setIsLoading(false);
-      }, 1000);
+      }
     }
   }, [isOpen, row]);
 
-  const generateExplanation = (row) => {
-    // This is a placeholder for future GPT integration
-    const status = row.status || row.Status || '';
-    const explanation = `Строка содержит статус ${status} — это означает 'Раскладка перемещения'. Рекомендуется проверить МХ и убедиться в корректности перемещения.`;
-    setExplanation(explanation);
+  const generateExplanation = async (row, key) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: 'Ты - помощник по анализу данных. Твоя задача - объяснять содержимое строк таблицы на русском языке.'
+            },
+            {
+              role: 'user',
+              content: `Поясни содержимое этой строки таблицы на русском языке. Объясни, что означает каждый статус и какие действия нужно предпринять:\n${JSON.stringify(row, null, 2)}`
+            }
+          ],
+          max_tokens: 400,
+          temperature: 0.7
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка при получении ответа от GPT');
+      }
+
+      const data = await response.json();
+      setExplanation(data.choices[0].message.content);
+    } catch (error) {
+      console.error('GPT API error:', error);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRetry = () => {
+    if (apiKey) {
+      generateExplanation(row, apiKey);
+    }
+  };
+
+  const handleApiKeySubmit = (e) => {
+    e.preventDefault();
+    if (apiKey.trim()) {
+      localStorage.setItem('openai_api_key', apiKey.trim());
+      generateExplanation(row, apiKey.trim());
+    }
   };
 
   return (
@@ -98,11 +154,47 @@ const ExplanationModal = ({ isOpen, onClose, row, headers }) => {
                 </div>
               </div>
 
+              {/* API Key Input (if not set) */}
+              {!process.env.NEXT_PUBLIC_OPENAI_API_KEY && !localStorage.getItem('openai_api_key') && (
+                <form onSubmit={handleApiKeySubmit} className="mb-4">
+                  <div className="flex gap-2">
+                    <input
+                      type="password"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder="Введите OpenAI API ключ"
+                      className="flex-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-dark-300 border-0 ring-1 ring-gray-200 dark:ring-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 text-gray-700 dark:text-gray-300"
+                    />
+                    <motion.button
+                      type="submit"
+                      className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-sm"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Сохранить
+                    </motion.button>
+                  </div>
+                </form>
+              )}
+
               {/* AI Explanation */}
               <div>
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  AI-Пояснение:
-                </h4>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    AI-Пояснение:
+                  </h4>
+                  {!isLoading && !error && (
+                    <motion.button
+                      onClick={handleRetry}
+                      className="text-sm text-gray-500 hover:text-primary-500 dark:hover:text-primary-400 flex items-center gap-1"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <span>🔄</span>
+                      <span>Сгенерировать снова</span>
+                    </motion.button>
+                  )}
+                </div>
                 <div className="bg-gray-50 dark:bg-dark-300 rounded-lg p-3">
                   {isLoading ? (
                     <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
@@ -113,8 +205,14 @@ const ExplanationModal = ({ isOpen, onClose, row, headers }) => {
                       />
                       <span>Генерация пояснения...</span>
                     </div>
+                  ) : error ? (
+                    <div className="text-red-500 dark:text-red-400">
+                      {error}
+                    </div>
                   ) : (
-                    <p className="text-gray-600 dark:text-gray-400">{explanation}</p>
+                    <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+                      {explanation}
+                    </p>
                   )}
                 </div>
               </div>
