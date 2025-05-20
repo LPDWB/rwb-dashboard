@@ -349,7 +349,20 @@ export default function DataTable({ data }) {
   const [toastMessage, setToastMessage] = useState('');
   const [selectedRow, setSelectedRow] = useState(null);
   const [showExplanation, setShowExplanation] = useState(false);
+  const [user, setUser] = useState(null);
   const itemsPerPage = 10;
+
+  // Initialize user from session or localStorage
+  useEffect(() => {
+    if (session?.user) {
+      setUser(session.user);
+    } else {
+      const storedUser = localStorage.getItem('rwb_user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    }
+  }, [session]);
 
   // Save user info to localStorage when session changes
   useEffect(() => {
@@ -583,6 +596,15 @@ export default function DataTable({ data }) {
     setShowExplanation(true);
   };
 
+  const handleSignOut = () => {
+    if (session) {
+      signOut();
+    } else {
+      localStorage.removeItem('rwb_user');
+      setUser(null);
+    }
+  };
+
   if (!data || !data.length) return null;
 
   return (
@@ -620,8 +642,8 @@ export default function DataTable({ data }) {
             <span>{isExporting ? 'Экспорт...' : 'Экспорт'}</span>
           </motion.button>
 
-          {status === 'authenticated' ? (
-            <UserProfile user={session.user} onSignOut={() => signOut()} />
+          {user ? (
+            <UserProfile user={user} onSignOut={handleSignOut} />
           ) : (
             <motion.button
               onClick={() => signIn('google')}
