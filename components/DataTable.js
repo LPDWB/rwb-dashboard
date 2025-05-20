@@ -1,169 +1,255 @@
 import { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import * as XLSX from 'xlsx';
+
+const STORAGE_KEYS = {
+  SORT_CONFIG: 'rwb_table_sort_config',
+  SEARCH_TERM: 'rwb_table_search_term'
+};
+
+// Helper function to safely access localStorage
+const getLocalStorage = (key, defaultValue) => {
+  if (typeof window === 'undefined') return defaultValue;
+  try {
+    const item = window.localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch (error) {
+    console.error('Error reading from localStorage:', error);
+    return defaultValue;
+  }
+};
+
+// Helper function to safely set localStorage
+const setLocalStorage = (key, value) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error('Error writing to localStorage:', error);
+  }
+};
 
 export default function DataTable({ data }) {
   const [headers, setHeaders] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
   const itemsPerPage = 10;
+
+  // Initialize state from localStorage after mount
+  useEffect(() => {
+    const savedSortConfig = getLocalStorage(STORAGE_KEYS.SORT_CONFIG, { key: null, direction: 'asc' });
+    const savedSearchTerm = getLocalStorage(STORAGE_KEYS.SEARCH_TERM, '');
+    setSortConfig(savedSortConfig);
+    setSearchTerm(savedSearchTerm);
+  }, []);
+
+  // Save state to localStorage
+  useEffect(() => {
+    setLocalStorage(STORAGE_KEYS.SORT_CONFIG, sortConfig);
+  }, [sortConfig]);
+
+  useEffect(() => {
+    setLocalStorage(STORAGE_KEYS.SEARCH_TERM, searchTerm);
+  }, [searchTerm]);
 
   useEffect(() => {
     if (data && data.length > 0) {
       setHeaders(Object.keys(data[0]));
-      // Сбрасываем страницу при изменении данных
       setCurrentPage(1);
     }
   }, [data]);
 
-  // Сортировка данных
+  // Show toast message
+  const showToastMessage = (message) => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
+  // Handle export
+  const handleExport = () => {
+    try {
+      setIsExporting(true);
+      
+      // Create worksheet from filtered and sorted data
+      const ws = XLSX.utils.json_to_sheet(processedData);
+      
+      // Create workbook and add worksheet
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Data');
+      
+      // Generate and download file
+      XLSX.writeFile(wb, 'filtered_export.xlsx');
+      
+      showToastMessage('Экспорт завершён');
+    } catch (error) {
+      console.error('Export error:', error);
+      showToastMessage('Ошибка при экспорте');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Handle sorting
   const handleSort = (key) => {
     let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
+    if (sortConfig.key === key) {
+      if (sortConfig.direction === 'asc') {
+        direction = 'desc';
+      } else if (sortConfig.direction === 'desc') {
+        key = null;
+        direction = 'asc';
+      }
     }
     setSortConfig({ key, direction });
   };
 
-  // Фильтрация, сортировка и пагинация данных
-  const filteredData = useMemo(() => {
-    let processedData = data || [];
+  // Process data with filtering and sorting
+  const processedData = useMemo(() => {
+    let result = [...(data || [])];
     
-    // Фильтрация
+    // Apply search filter
     if (searchTerm) {
-      processedData = processedData.filter(row => 
-        headers.some(header => {
-          const value = row[header];
-          return value !== null && 
-                 value !== undefined && 
-                 String(value).toLowerCase().includes(searchTerm.toLowerCase());
-        })
+      const searchLower = searchTerm.toLowerCase();
+      result = result.filter(row => 
+        Object.values(row).some(value => 
+          String(value).toLowerCase().includes(searchLower)
+        )
       );
     }
     
-    // Сортировка
+    // Apply sorting
     if (sortConfig.key) {
-      processedData = [...processedData].sort((a, b) => {
+      result.sort((a, b) => {
         const aValue = a[sortConfig.key];
         const bValue = b[sortConfig.key];
         
-        // Проверка на числовые значения
+        // Handle numeric values
         if (!isNaN(Number(aValue)) && !isNaN(Number(bValue))) {
           return sortConfig.direction === 'asc' 
             ? Number(aValue) - Number(bValue) 
             : Number(bValue) - Number(aValue);
         }
         
-        // Строковое сравнение
-        if (aValue < bValue) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
+        // Handle string values
+        const aStr = String(aValue).toLowerCase();
+        const bStr = String(bValue).toLowerCase();
+        
+        if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
     }
+    
+    return result;
+  }, [data, searchTerm, sortConfig]);
 
-    return processedData;
-  }, [data, headers, searchTerm, sortConfig]);
-
-  // Данные текущей страницы
+  // Get current page data
   const currentData = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredData.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredData, currentPage, itemsPerPage]);
+    return processedData.slice(startIndex, startIndex + itemsPerPage);
+  }, [processedData, currentPage]);
 
-  // Общее количество страниц
-  const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
+  // Calculate total pages
+  const totalPages = Math.max(1, Math.ceil(processedData.length / itemsPerPage));
 
-  // Генерация элементов пагинации
+  // Generate pagination items
   const getPaginationItems = () => {
     const items = [];
-    const maxButtons = 5; // Максимальное количество кнопок страниц
+    const maxButtons = 5;
     
     let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
-    let endPage = startPage + maxButtons - 1;
+    let endPage = Math.min(totalPages, startPage + maxButtons - 1);
     
-    if (endPage > totalPages) {
-      endPage = totalPages;
+    if (endPage - startPage + 1 < maxButtons) {
       startPage = Math.max(1, endPage - maxButtons + 1);
     }
     
-    // Кнопка "предыдущая страница"
+    // Previous button
     items.push(
-      <button
+      <motion.button
         key="prev"
         onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
         disabled={currentPage === 1}
-        className="px-2 py-1 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-300 transition"
+        className="px-3 py-1 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-300 transition-colors"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
       >
-        ← Пред
-      </button>
+        ←
+      </motion.button>
     );
     
-    // Первая страница и многоточие
+    // First page
     if (startPage > 1) {
       items.push(
-        <button
+        <motion.button
           key="1"
           onClick={() => setCurrentPage(1)}
-          className={`px-3 py-1 text-sm rounded-md ${
-            currentPage === 1 ? 'bg-primary-500 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-300'
-          } transition`}
+          className="px-3 py-1 rounded-md text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-300 transition-colors"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
           1
-        </button>
+        </motion.button>
       );
       if (startPage > 2) {
         items.push(<span key="ellipsis-start" className="px-1 text-gray-500">...</span>);
       }
     }
     
-    // Номера страниц
+    // Page numbers
     for (let i = startPage; i <= endPage; i++) {
-      if (i === 1 || i === totalPages) continue; // Пропускаем, так как они отдельно
       items.push(
-        <button
+        <motion.button
           key={i}
           onClick={() => setCurrentPage(i)}
-          className={`px-3 py-1 text-sm rounded-md ${
-            currentPage === i ? 'bg-primary-500 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-300'
-          } transition`}
+          className={`px-3 py-1 rounded-md text-sm transition-colors ${
+            currentPage === i 
+              ? 'bg-primary-500 text-white' 
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-300'
+          }`}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
           {i}
-        </button>
+        </motion.button>
       );
     }
     
-    // Последняя страница и многоточие
+    // Last page
     if (endPage < totalPages) {
       if (endPage < totalPages - 1) {
         items.push(<span key="ellipsis-end" className="px-1 text-gray-500">...</span>);
       }
       items.push(
-        <button
+        <motion.button
           key={totalPages}
           onClick={() => setCurrentPage(totalPages)}
-          className={`px-3 py-1 text-sm rounded-md ${
-            currentPage === totalPages ? 'bg-primary-500 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-300'
-          } transition`}
+          className="px-3 py-1 rounded-md text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-300 transition-colors"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
           {totalPages}
-        </button>
+        </motion.button>
       );
     }
     
-    // Кнопка "следующая страница"
+    // Next button
     items.push(
-      <button
+      <motion.button
         key="next"
         onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
         disabled={currentPage === totalPages}
-        className="px-2 py-1 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-300 transition"
+        className="px-3 py-1 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-300 transition-colors"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
       >
-        След →
-      </button>
+        →
+      </motion.button>
     );
     
     return items;
@@ -173,29 +259,42 @@ export default function DataTable({ data }) {
 
   return (
     <div className="w-full">
-      {/* Панель поиска */}
-      <div className="p-4 bg-white dark:bg-dark-200 flex flex-wrap items-center justify-between mb-2 border-b border-gray-100 dark:border-dark-300">
-        <div className="relative w-full sm:w-auto mb-2 sm:mb-0">
+      {/* Search and Export panel */}
+      <div className="p-4 bg-white dark:bg-dark-200 flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 dark:border-dark-300">
+        <div className="relative flex-1 min-w-[200px]">
           <input
             type="text"
             placeholder="Поиск в таблице..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 w-full sm:w-64 rounded-lg bg-gray-50 dark:bg-dark-300 border-0 ring-1 ring-gray-200 dark:ring-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 text-gray-700 dark:text-gray-300"
+            className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-50 dark:bg-dark-300 border-0 ring-1 ring-gray-200 dark:ring-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400"
           />
-          <svg className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          <svg className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
-        <div className="text-sm text-gray-600 dark:text-gray-400">
-          Найдено записей: <span className="font-medium">{filteredData.length}</span>
-          {filteredData.length !== data.length && (
-            <> из <span className="font-medium">{data.length}</span></>
-          )}
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+            Найдено: <span className="font-medium">{processedData.length}</span>
+            {processedData.length !== data.length && (
+              <> из <span className="font-medium">{data.length}</span></>
+            )}
+          </div>
+          <motion.button
+            onClick={handleExport}
+            disabled={isExporting || processedData.length === 0}
+            className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            title={processedData.length === 0 ? 'Нет данных для экспорта' : 'Экспорт текущих данных'}
+          >
+            <span>📤</span>
+            <span>{isExporting ? 'Экспорт...' : 'Экспорт'}</span>
+          </motion.button>
         </div>
       </div>
 
-      {/* Таблица */}
+      {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full table-auto text-sm text-left">
           <thead className="sticky top-0 text-xs uppercase bg-gray-50 dark:bg-dark-300 text-gray-600 dark:text-gray-300 select-none">
@@ -206,15 +305,15 @@ export default function DataTable({ data }) {
                   className="px-6 py-4 whitespace-nowrap transition-colors cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-400"
                   onClick={() => handleSort(header)}
                 >
-                  <div className="flex items-center">
-                    {header}
+                  <div className="flex items-center gap-2">
+                    <span>{header}</span>
                     {sortConfig.key === header && (
                       <motion.span
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="ml-1"
+                        className="text-primary-500"
                       >
-                        {sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}
+                        {sortConfig.direction === 'asc' ? '↑' : '↓'}
                       </motion.span>
                     )}
                   </div>
@@ -223,38 +322,59 @@ export default function DataTable({ data }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-dark-300">
-            {currentData.map((row, rowIndex) => (
-              <motion.tr 
-                key={rowIndex} 
-                className="bg-white dark:bg-dark-200 hover:bg-gray-50 dark:hover:bg-dark-300 transition-colors"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: rowIndex * 0.03 }}
-              >
-                {headers.map((header, colIndex) => (
-                  <td key={colIndex} className="px-6 py-4 whitespace-nowrap">
-                    {row[header]?.toString() || ''}
-                  </td>
-                ))}
-              </motion.tr>
-            ))}
+            <AnimatePresence mode="popLayout">
+              {currentData.map((row, rowIndex) => (
+                <motion.tr 
+                  key={rowIndex} 
+                  className="bg-white dark:bg-dark-200 hover:bg-gray-50 dark:hover:bg-dark-300 transition-colors"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2, delay: rowIndex * 0.03 }}
+                >
+                  {headers.map((header, colIndex) => (
+                    <td key={colIndex} className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                      {row[header]?.toString() || ''}
+                    </td>
+                  ))}
+                </motion.tr>
+              ))}
+            </AnimatePresence>
           </tbody>
         </table>
-
-        {/* Сообщение, если нет результатов */}
-        {filteredData.length === 0 && (
-          <div className="py-8 px-4 text-center text-gray-500 dark:text-gray-400">
-            Ничего не найдено. Попробуйте изменить условия поиска.
-          </div>
-        )}
       </div>
 
-      {/* Пагинация */}
-      {filteredData.length > 0 && (
-        <div className="p-4 flex justify-center items-center gap-1 bg-white dark:bg-dark-200 border-t border-gray-100 dark:border-dark-300">
+      {/* No results message */}
+      {processedData.length === 0 && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="py-8 px-4 text-center text-gray-500 dark:text-gray-400"
+        >
+          Ничего не найдено. Попробуйте изменить условия поиска.
+        </motion.div>
+      )}
+
+      {/* Pagination */}
+      {processedData.length > 0 && (
+        <div className="p-4 flex justify-center items-center gap-2 bg-white dark:bg-dark-200 border-t border-gray-100 dark:border-dark-300">
           {getPaginationItems()}
         </div>
       )}
+
+      {/* Toast notification */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg z-50"
+          >
+            {toastMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 } 
