@@ -12,30 +12,52 @@ const STORAGE_KEYS = {
   UPLOAD_HISTORY: 'rwb_upload_history'
 };
 
+// Helper function to safely access localStorage
+const getLocalStorage = (key, defaultValue) => {
+  if (typeof window === 'undefined') return defaultValue;
+  try {
+    const item = window.localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch (error) {
+    console.error('Error reading from localStorage:', error);
+    return defaultValue;
+  }
+};
+
+// Helper function to safely set localStorage
+const setLocalStorage = (key, value) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error('Error writing to localStorage:', error);
+  }
+};
+
 export default function Home() {
   const [data, setData] = useState([]);
   const [isDark, setIsDark] = useState(false);
-  const [activeSection, setActiveSection] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_SECTION);
-    return saved ? JSON.parse(saved) : 'charts';
-  });
+  const [activeSection, setActiveSection] = useState(() => 
+    getLocalStorage(STORAGE_KEYS.ACTIVE_SECTION, 'charts')
+  );
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
-  const [uploadHistory, setUploadHistory] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.UPLOAD_HISTORY);
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [uploadHistory, setUploadHistory] = useState(() => 
+    getLocalStorage(STORAGE_KEYS.UPLOAD_HISTORY, [])
+  );
 
   // Save active section to localStorage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.ACTIVE_SECTION, JSON.stringify(activeSection));
+    setLocalStorage(STORAGE_KEYS.ACTIVE_SECTION, activeSection);
   }, [activeSection]);
 
   // Save upload history to localStorage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.UPLOAD_HISTORY, JSON.stringify(uploadHistory));
+    setLocalStorage(STORAGE_KEYS.UPLOAD_HISTORY, uploadHistory);
   }, [uploadHistory]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     if (isDark) {
       document.documentElement.classList.add("dark");
     } else {
@@ -45,7 +67,9 @@ export default function Home() {
 
   // Theme preferences
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
+    if (typeof window === 'undefined') return;
+
+    const savedTheme = window.localStorage.getItem("theme");
     if (savedTheme === "dark") {
       setIsDark(true);
     } else if (savedTheme === "light") {
@@ -57,9 +81,11 @@ export default function Home() {
   }, []);
 
   const toggleTheme = () => {
+    if (typeof window === 'undefined') return;
+    
     const newTheme = !isDark;
     setIsDark(newTheme);
-    localStorage.setItem("theme", newTheme ? "dark" : "light");
+    window.localStorage.setItem("theme", newTheme ? "dark" : "light");
   };
 
   const handleFileUpload = (e) => {

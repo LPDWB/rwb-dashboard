@@ -8,6 +8,28 @@ const STORAGE_KEYS = {
   LOCKED_ARCHIVES: 'rwb_locked_archives'
 };
 
+// Helper function to safely access localStorage
+const getLocalStorage = (key, defaultValue) => {
+  if (typeof window === 'undefined') return defaultValue;
+  try {
+    const item = window.localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch (error) {
+    console.error('Error reading from localStorage:', error);
+    return defaultValue;
+  }
+};
+
+// Helper function to safely set localStorage
+const setLocalStorage = (key, value) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error('Error writing to localStorage:', error);
+  }
+};
+
 export default function ArchiveItem({ file, onLoad, onRename }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -15,7 +37,7 @@ export default function ArchiveItem({ file, onLoad, onRename }) {
   const [isExporting, setIsExporting] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [isLocked, setIsLocked] = useState(() => {
-    const lockedArchives = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOCKED_ARCHIVES) || '[]');
+    const lockedArchives = getLocalStorage(STORAGE_KEYS.LOCKED_ARCHIVES, []);
     return lockedArchives.includes(file.id);
   });
   const [showToast, setShowToast] = useState(false);
@@ -25,14 +47,16 @@ export default function ArchiveItem({ file, onLoad, onRename }) {
 
   // Close export dropdown when clicking outside
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const handleClickOutside = (event) => {
       if (exportDropdownRef.current && !exportDropdownRef.current.contains(event.target)) {
         setShowExportDropdown(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    window.document.addEventListener('mousedown', handleClickOutside);
+    return () => window.document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   // Focus input when editing starts
@@ -82,7 +106,7 @@ export default function ArchiveItem({ file, onLoad, onRename }) {
   };
 
   const toggleLock = () => {
-    const lockedArchives = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOCKED_ARCHIVES) || '[]');
+    const lockedArchives = getLocalStorage(STORAGE_KEYS.LOCKED_ARCHIVES, []);
     const newLockedState = !isLocked;
     
     if (newLockedState) {
@@ -94,7 +118,7 @@ export default function ArchiveItem({ file, onLoad, onRename }) {
       }
     }
     
-    localStorage.setItem(STORAGE_KEYS.LOCKED_ARCHIVES, JSON.stringify(lockedArchives));
+    setLocalStorage(STORAGE_KEYS.LOCKED_ARCHIVES, lockedArchives);
     setIsLocked(newLockedState);
     showToastMessage(newLockedState ? 'Архив защищён' : 'Защита снята');
   };
