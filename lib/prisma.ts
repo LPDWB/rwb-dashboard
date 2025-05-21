@@ -4,10 +4,16 @@ declare global {
   var prisma: PrismaClient | undefined
 }
 
-export const prisma = global.prisma || new PrismaClient({
-  log: ['query'],
-})
+const prismaClientSingleton = () => {
+  return new PrismaClient({
+    log: ['query', 'error', 'warn'],
+  })
+}
+
+export const prisma = global.prisma ?? prismaClientSingleton()
 
 if (process.env.NODE_ENV !== 'production') {
   global.prisma = prisma
-} 
+}
+
+export default prisma 

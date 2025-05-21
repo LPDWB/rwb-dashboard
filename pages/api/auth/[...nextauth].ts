@@ -1,6 +1,6 @@
 import NextAuth, { NextAuthOptions, DefaultSession } from 'next-auth';
 import GoogleProvider from "next-auth/providers/google";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from '@/lib/prisma';
 
 declare module "next-auth" {
@@ -56,6 +56,7 @@ export const authOptions: NextAuthOptions = {
     strategy: "database",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
+  debug: process.env.NODE_ENV === 'development',
 };
 
 export default NextAuth(authOptions); 
