@@ -6,11 +6,19 @@ import Sidebar from "../components/Sidebar";
 import AssistantPanel from "../components/AssistantPanel";
 import ExportPanel from "../components/ExportPanel";
 import ArchiveItem from "../components/ArchiveItem";
+import dynamic from 'next/dynamic';
+import { useSession } from 'next-auth/react';
+import UserMenu from '../components/UserMenu';
 
 const STORAGE_KEYS = {
   ACTIVE_SECTION: 'rwb_active_section',
   UPLOAD_HISTORY: 'rwb_upload_history'
 };
+
+// Dynamically import DataTable to avoid SSR issues
+const DataTableDynamic = dynamic(() => import('../components/DataTable'), {
+  ssr: false,
+});
 
 // Helper function to safely access localStorage
 const getLocalStorage = (key, defaultValue) => {
@@ -35,6 +43,7 @@ const setLocalStorage = (key, value) => {
 };
 
 export default function Home() {
+  const { data: session } = useSession();
   const [data, setData] = useState([]);
   const [isDark, setIsDark] = useState(false);
   const [activeSection, setActiveSection] = useState('charts');
@@ -241,7 +250,7 @@ export default function Home() {
             <FileUploader />
             {data.length > 0 ? (
               <div className="rounded-xl overflow-hidden shadow-smooth-lg dark:shadow-smooth-dark bg-white dark:bg-dark-200 transition-all duration-200">
-                <DataTable data={data} />
+                <DataTableDynamic data={data} />
               </div>
             ) : (
               <div className="bg-white dark:bg-dark-200 p-8 rounded-xl shadow-smooth dark:shadow-smooth-dark flex flex-col items-center justify-center text-center h-64 transition-all duration-200">
@@ -269,23 +278,13 @@ export default function Home() {
 
       {/* Main content */}
       <div className="md:ml-64 transition-all duration-300">
-        {/* Header */}
-        <header className="border-b border-gray-200 dark:border-dark-300 p-4">
-          <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <h1 className="text-2xl sm:text-3xl font-bold flex items-center">
-              <span className="mr-2">📊</span>
-              <span className="bg-gradient-to-r from-primary-600 to-primary-400 dark:from-primary-500 dark:to-primary-300 bg-clip-text text-transparent">
-                RWB Dashboard
-              </span>
-            </h1>
-            <button
-              onClick={toggleTheme}
-              className="px-4 py-2 rounded-full bg-white dark:bg-dark-300 hover:bg-gray-100 dark:hover:bg-dark-400 shadow-smooth dark:shadow-smooth-dark transition-all duration-300 flex items-center"
-            >
-              <span className="mr-2">{isDark ? "🌞" : "🌙"}</span>
-              <span className="text-sm font-medium">{isDark ? "Светлая тема" : "Тёмная тема"}</span>
-            </button>
+        {/* Header with UserMenu */}
+        <header className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-3">
+            <h1 className="text-2xl font-bold text-gray-900">RWB Dashboard</h1>
+            <span className="px-2 py-1 text-sm bg-blue-100 text-blue-800 rounded-md">Beta</span>
           </div>
+          <UserMenu />
         </header>
 
         {/* Content */}

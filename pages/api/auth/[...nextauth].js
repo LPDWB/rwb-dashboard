@@ -1,45 +1,41 @@
 import NextAuth from 'next-auth';
-import GoogleProvider from 'next-auth/providers/google';
+import GoogleProvider from "next-auth/providers/google";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { prisma } from "@/lib/prisma";
 
-// Check if Google auth is configured
-const hasGoogleConfig = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET;
-
-// Configure providers based on availability
-const providers = [];
-if (hasGoogleConfig) {
-  providers.push(
+export const authOptions = {
+  adapter: PrismaAdapter(prisma),
+  providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    })
-  );
-}
-
-export const authOptions = {
-  providers,
+    }),
+  ],
   callbacks: {
-    async session({ session, token }) {
+    async session({ session, token, user }) {
+      if (session?.user) {
+        session.user.id = user.id;
+        
+        // Create user profile if it doesn't exist
+        const profile = await prisma.userProfile.findUnique({
+          where: { userId: user.id },
+        });
+        
+        if (!profile) {
+          await prisma.userProfile.create({
+            data: {
+              userId: user.id,
+            },
+          });
+        }
+      }
       return session;
     },
-    async jwt({ token, user, account }) {
-      if (account && user) {
-        return {
-          ...token,
-          accessToken: account.access_token,
-          user,
-        };
-      }
-      return token;
-    },
   },
-  pages: {
-    signIn: '/auth/signin',
+  secret: process.env.NEXTAUTH_SECRET,
+  session: {
+    strategy: "database",
   },
-  // Log warning if NEXTAUTH_SECRET is missing
-  secret: process.env.NEXTAUTH_SECRET || (() => {
-    console.warn('Warning: NEXTAUTH_SECRET is not set. Using a random string as fallback.');
-    return Math.random().toString(36).slice(-32);
-  })(),
 };
 
 export default NextAuth(authOptions); 

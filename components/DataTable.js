@@ -10,9 +10,8 @@ const STORAGE_KEYS = {
 
 // Helper function to safely access localStorage
 const getLocalStorage = (key, defaultValue) => {
-  if (typeof window === 'undefined') return defaultValue;
   try {
-    const item = window.localStorage.getItem(key);
+    const item = localStorage.getItem(key);
     return item ? JSON.parse(item) : defaultValue;
   } catch (error) {
     console.error('Error reading from localStorage:', error);
@@ -22,9 +21,8 @@ const getLocalStorage = (key, defaultValue) => {
 
 // Helper function to safely set localStorage
 const setLocalStorage = (key, value) => {
-  if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(key, JSON.stringify(value));
+    localStorage.setItem(key, JSON.stringify(value));
   } catch (error) {
     console.error('Error writing to localStorage:', error);
   }
@@ -349,30 +347,7 @@ export default function DataTable({ data }) {
   const [toastMessage, setToastMessage] = useState('');
   const [selectedRow, setSelectedRow] = useState(null);
   const [showExplanation, setShowExplanation] = useState(false);
-  const [user, setUser] = useState(null);
   const itemsPerPage = 10;
-
-  // Initialize user from session or localStorage
-  useEffect(() => {
-    if (session?.user) {
-      setUser(session.user);
-    } else {
-      const storedUser = localStorage.getItem('rwb_user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
-    }
-  }, [session]);
-
-  // Save user info to localStorage when session changes
-  useEffect(() => {
-    if (session?.user) {
-      localStorage.setItem('user', JSON.stringify({
-        name: session.user.name,
-        email: session.user.email
-      }));
-    }
-  }, [session]);
 
   // Initialize state from localStorage after mount
   useEffect(() => {
@@ -596,20 +571,11 @@ export default function DataTable({ data }) {
     setShowExplanation(true);
   };
 
-  const handleSignOut = () => {
-    if (session) {
-      signOut();
-    } else {
-      localStorage.removeItem('rwb_user');
-      setUser(null);
-    }
-  };
-
   if (!data || !data.length) return null;
 
   return (
     <div className="w-full">
-      {/* Search, Export, and Auth panel */}
+      {/* Search and Export panel */}
       <div className="p-4 bg-white dark:bg-dark-200 flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 dark:border-dark-300">
         <div className="relative flex-1 min-w-[200px]">
           <input
@@ -641,25 +607,6 @@ export default function DataTable({ data }) {
             <span>📤</span>
             <span>{isExporting ? 'Экспорт...' : 'Экспорт'}</span>
           </motion.button>
-
-          {user ? (
-            <UserProfile user={user} onSignOut={handleSignOut} />
-          ) : (
-            <motion.button
-              onClick={() => signIn('google')}
-              className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg flex items-center gap-2 text-sm"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"
-                />
-              </svg>
-              Войти
-            </motion.button>
-          )}
         </div>
       </div>
 

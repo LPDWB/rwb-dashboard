@@ -8,20 +8,29 @@
   },
   "dependencies": {
     "@auth/core": "^0.34.2",
+    "@next-auth/prisma-adapter": "^1.0.7",
+    "@radix-ui/react-dropdown-menu": "^2.1.15",
+    "@radix-ui/react-slot": "^1.2.3",
     "@tanstack/react-table": "^8.21.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "framer-motion": "^12.12.1",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
+    "lucide-react": "^0.511.0",
     "next": "13.4.12",
     "next-auth": "^4.24.11",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "recharts": "^2.15.3",
+    "tailwind-merge": "^3.3.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@prisma/client": "^6.8.2",
     "autoprefixer": "^10.4.14",
     "postcss": "^8.4.21",
+    "prisma": "^6.8.2",
     "tailwindcss": "^3.3.2"
   },
   "packageManager": "pnpm@10.8.0+sha512.0e82714d1b5b43c74610193cb20734897c1d00de89d0e18420aebc5977fa13d780a9cb05734624e81ebd81cc876cd464794850641c48b9544326b5622ca29971"
