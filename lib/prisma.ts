@@ -5,9 +5,24 @@ declare global {
 }
 
 const prismaClientSingleton = () => {
-  return new PrismaClient({
-    log: ['query', 'error', 'warn'],
-  })
+  try {
+    const client = new PrismaClient({
+      log: ['error', 'warn'],
+    })
+
+    // Проверяем подключение к базе данных
+    client.$connect()
+      .then(() => console.log('Successfully connected to database'))
+      .catch((error) => {
+        console.error('Failed to connect to database:', error)
+        throw error
+      })
+
+    return client
+  } catch (error) {
+    console.error('Failed to initialize PrismaClient:', error)
+    throw error
+  }
 }
 
 export const prisma = global.prisma ?? prismaClientSingleton()

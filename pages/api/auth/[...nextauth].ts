@@ -3,6 +3,17 @@ import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from '@/lib/prisma';
 
+// Проверяем наличие необходимых переменных окружения
+if (!process.env.GOOGLE_CLIENT_ID) {
+  throw new Error('GOOGLE_CLIENT_ID is not defined');
+}
+if (!process.env.GOOGLE_CLIENT_SECRET) {
+  throw new Error('GOOGLE_CLIENT_SECRET is not defined');
+}
+if (!process.env.NEXTAUTH_SECRET) {
+  throw new Error('NEXTAUTH_SECRET is not defined');
+}
+
 declare module "next-auth" {
   interface Session extends DefaultSession {
     user?: {
@@ -15,29 +26,34 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
   ],
   callbacks: {
-    async session({ session, token, user }) {
-      if (session?.user) {
-        session.user.id = user.id;
-        
-        // Create user profile if it doesn't exist
-        const profile = await prisma.userProfile.findUnique({
-          where: { userId: user.id },
-        });
-        
-        if (!profile) {
-          await prisma.userProfile.create({
-            data: {
-              userId: user.id,
-            },
+    async session({ session, user }) {
+      try {
+        if (session?.user) {
+          session.user.id = user.id;
+          
+          // Create user profile if it doesn't exist
+          const profile = await prisma.userProfile.findUnique({
+            where: { userId: user.id },
           });
+          
+          if (!profile) {
+            await prisma.userProfile.create({
+              data: {
+                userId: user.id,
+              },
+            });
+          }
         }
+        return session;
+      } catch (error) {
+        console.error('Error in session callback:', error);
+        return session;
       }
-      return session;
     },
     async redirect({ url, baseUrl }) {
       // Allows relative callback URLs
