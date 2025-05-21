@@ -180,7 +180,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "C:\\rwb-dashboard\\generated\\prisma",
+      "value": "C:\\Users\\User\\Downloads\\rwb-dashboard\\generated\\prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -194,12 +194,11 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "C:\\rwb-dashboard\\prisma\\schema.prisma",
+    "sourceFilePath": "C:\\Users\\User\\Downloads\\rwb-dashboard\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
-    "rootEnvPath": null,
-    "schemaEnvPath": "../../.env"
+    "rootEnvPath": null
   },
   "relativePath": "../../prisma",
   "clientVersion": "6.8.2",
@@ -208,6 +207,7 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
