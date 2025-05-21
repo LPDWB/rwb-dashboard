@@ -18,7 +18,7 @@ export default function UserMenu() {
   if (!session) {
     return (
       <button
-        onClick={() => signIn('google')}
+        onClick={() => signIn('google', { callbackUrl: 'https://rwb-dashboard.vercel.app/' })}
         className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
       >
         <User className="w-4 h-4 mr-2" />
@@ -74,7 +74,7 @@ export default function UserMenu() {
 
             <DropdownMenu.Item
               className="flex w-full items-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer"
-              onClick={() => signOut({ callbackUrl: '/' })}
+              onClick={() => signOut({ callbackUrl: 'https://rwb-dashboard.vercel.app/' })}
             >
               <LogOut className="w-4 h-4 mr-2" />
               Выйти из аккаунта
