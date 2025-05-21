@@ -166,7 +166,7 @@ export default function Home() {
     );
   };
 
-  if (isLoading) {
+  if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -192,53 +192,15 @@ export default function Home() {
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">
-                {activeSection === 'charts' ? 'Графики' : 
-                 activeSection === 'table' ? 'Таблица данных' : 
-                 activeSection === 'archive' ? 'Архив' : 'Dashboard'}
+                RWB Dashboard
               </h1>
               <UserMenu />
             </div>
-
-            {activeSection === 'charts' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <BarChartComponent data={data} />
-              </div>
-            )}
-
-            {activeSection === 'table' && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                {data.length > 0 ? (
-                  <DataTableDynamic data={data} />
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500 dark:text-gray-400">
-                      Загрузите данные для отображения таблицы
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeSection === 'archive' && (
-              <div className="space-y-4">
-                {uploadHistory.length > 0 ? (
-                  uploadHistory.map((file) => (
-                    <ArchiveItem
-                      key={file.id}
-                      file={file}
-                      onLoad={handleLoadArchiveFile}
-                      onRename={handleRenameArchive}
-                    />
-                  ))
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500 dark:text-gray-400">
-                      Нет сохраненных файлов
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <p className="text-gray-600 dark:text-gray-300">
+                {session ? `Добро пожаловать, ${session.user?.name || 'Пользователь'}!` : 'Пожалуйста, войдите в систему.'}
+              </p>
+            </div>
           </div>
         </div>
       </div>
