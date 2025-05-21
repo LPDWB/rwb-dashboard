@@ -4,7 +4,16 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { User, LogOut, UserCircle, ChevronDown } from 'lucide-react';
 
 export default function UserMenu() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const isLoading = status === 'loading';
+
+  if (isLoading) {
+    return (
+      <div className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-500 bg-gray-100 border border-transparent rounded-md">
+        Загрузка...
+      </div>
+    );
+  }
 
   if (!session) {
     return (
@@ -18,21 +27,25 @@ export default function UserMenu() {
     );
   }
 
+  const userName = session.user?.name || 'Пользователь';
+  const userEmail = session.user?.email || '';
+  const userImage = session.user?.image;
+
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
         <button className="inline-flex items-center justify-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white rounded-md hover:bg-gray-50 border border-gray-200 shadow-sm transition-all focus:outline-none">
           <div className="flex items-center space-x-2">
-            {session.user?.image ? (
+            {userImage ? (
               <img
-                src={session.user.image}
-                alt={session.user.name || ''}
+                src={userImage}
+                alt={userName}
                 className="w-6 h-6 rounded-full ring-2 ring-white"
               />
             ) : (
               <UserCircle className="w-6 h-6 text-gray-400" />
             )}
-            <span className="max-w-[150px] truncate">{session.user?.name}</span>
+            <span className="max-w-[150px] truncate">{userName}</span>
           </div>
           <ChevronDown className="w-4 h-4 text-gray-500" />
         </button>
@@ -46,10 +59,10 @@ export default function UserMenu() {
         >
           <div className="px-3 py-2">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {session.user?.name}
+              {userName}
             </p>
             <p className="text-xs text-gray-500 truncate mt-0.5">
-              {session.user?.email}
+              {userEmail}
             </p>
           </div>
 

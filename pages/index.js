@@ -43,12 +43,13 @@ const setLocalStorage = (key, value) => {
 };
 
 export default function Home() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [data, setData] = useState([]);
   const [isDark, setIsDark] = useState(false);
   const [activeSection, setActiveSection] = useState('charts');
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [uploadHistory, setUploadHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Initialize state from localStorage after mount
   useEffect(() => {
@@ -56,17 +57,22 @@ export default function Home() {
     const savedHistory = getLocalStorage(STORAGE_KEYS.UPLOAD_HISTORY, []);
     setActiveSection(savedSection);
     setUploadHistory(savedHistory);
+    setIsLoading(false);
   }, []);
 
   // Save active section to localStorage
   useEffect(() => {
-    setLocalStorage(STORAGE_KEYS.ACTIVE_SECTION, activeSection);
-  }, [activeSection]);
+    if (!isLoading) {
+      setLocalStorage(STORAGE_KEYS.ACTIVE_SECTION, activeSection);
+    }
+  }, [activeSection, isLoading]);
 
   // Save upload history to localStorage
   useEffect(() => {
-    setLocalStorage(STORAGE_KEYS.UPLOAD_HISTORY, uploadHistory);
-  }, [uploadHistory]);
+    if (!isLoading) {
+      setLocalStorage(STORAGE_KEYS.UPLOAD_HISTORY, uploadHistory);
+    }
+  }, [uploadHistory, isLoading]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -160,157 +166,82 @@ export default function Home() {
     );
   };
 
-  // File uploader component
-  const FileUploader = () => (
-    <div className="bg-gray-50 dark:bg-dark-200 p-5 rounded-xl shadow-smooth dark:shadow-smooth-dark mb-6 transition-all duration-200">
-      <div className="flex items-center mb-3">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-primary-500 dark:text-primary-400" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-        </svg>
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Загрузите Excel-файл</span>
-      </div>
-      <label className="flex flex-col items-center px-4 py-6 bg-white dark:bg-dark-300 rounded-lg cursor-pointer border-2 border-dashed border-gray-300 dark:border-dark-400 hover:border-primary-400 dark:hover:border-primary-500 transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 dark:text-dark-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        <span className="text-sm text-gray-500 dark:text-dark-600 text-center">
-          Перетащите сюда файл или кликните для выбора
-          <br />
-          <span className="text-xs">(Поддерживаются форматы .xlsx, .xls)</span>
-        </span>
-        <input 
-          type="file" 
-          accept=".xlsx, .xls" 
-          onChange={handleFileUpload} 
-          className="hidden" 
-        />
-      </label>
-    </div>
-  );
-
-  // Archive content component
-  const ArchiveContent = () => (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 flex items-center">
-          <span className="mr-2">📁</span>
-          Архив файлов
-        </h2>
-        <span className="text-sm text-gray-500 dark:text-gray-400">
-          {uploadHistory.length} файлов
-        </span>
-      </div>
-      
-      {uploadHistory.map((file) => (
-        <ArchiveItem
-          key={file.id}
-          file={file}
-          onLoad={handleLoadArchiveFile}
-          onRename={handleRenameArchive}
-        />
-      ))}
-      
-      {uploadHistory.length === 0 && (
-        <div className="text-center py-12 bg-white dark:bg-dark-200 rounded-xl shadow-smooth dark:shadow-smooth-dark">
-          <span className="text-4xl mb-4 block">📂</span>
-          <p className="text-gray-500 dark:text-gray-400">
-            Нет загруженных файлов
-          </p>
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">
+            Загрузка...
+          </h1>
         </div>
-      )}
-    </div>
-  );
-
-  // Main content based on active section
-  const renderContent = () => {
-    switch (activeSection) {
-      case 'charts':
-        return (
-          <>
-            <FileUploader />
-            {data.length > 0 ? (
-              <div className="rounded-xl overflow-hidden shadow-smooth-lg dark:shadow-smooth-dark bg-white dark:bg-dark-200 transition-all duration-200">
-                <BarChartComponent data={data} />
-              </div>
-            ) : (
-              <div className="bg-white dark:bg-dark-200 p-8 rounded-xl shadow-smooth dark:shadow-smooth-dark flex flex-col items-center justify-center text-center h-64 transition-all duration-200">
-                <svg className="w-16 h-16 text-gray-300 dark:text-dark-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <p className="text-gray-600 dark:text-dark-600">
-                  Загрузите Excel-файл для отображения графиков
-                </p>
-              </div>
-            )}
-          </>
-        );
-      case 'table':
-        return (
-          <>
-            <FileUploader />
-            {data.length > 0 ? (
-              <div className="rounded-xl overflow-hidden shadow-smooth-lg dark:shadow-smooth-dark bg-white dark:bg-dark-200 transition-all duration-200">
-                <DataTableDynamic data={data} />
-              </div>
-            ) : (
-              <div className="bg-white dark:bg-dark-200 p-8 rounded-xl shadow-smooth dark:shadow-smooth-dark flex flex-col items-center justify-center text-center h-64 transition-all duration-200">
-                <svg className="w-16 h-16 text-gray-300 dark:text-dark-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                <p className="text-gray-600 dark:text-dark-600">
-                  Загрузите Excel-файл для отображения таблицы
-                </p>
-              </div>
-            )}
-          </>
-        );
-      case 'archive':
-        return <ArchiveContent />;
-      default:
-        return null;
-    }
-  };
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-dark-100 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-200 ease-in-out">
-      {/* Sidebar */}
-      <Sidebar activeSection={activeSection} onSectionChange={setActiveSection} />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="flex h-screen">
+        <Sidebar
+          activeSection={activeSection}
+          setActiveSection={setActiveSection}
+          isDark={isDark}
+          toggleTheme={toggleTheme}
+        />
+        
+        <div className="flex-1 overflow-auto">
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">
+                {activeSection === 'charts' ? 'Графики' : 
+                 activeSection === 'table' ? 'Таблица данных' : 
+                 activeSection === 'archive' ? 'Архив' : 'Dashboard'}
+              </h1>
+              <UserMenu />
+            </div>
 
-      {/* Main content */}
-      <div className="md:ml-64 transition-all duration-300">
-        {/* Header with UserMenu */}
-        <header className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-3">
-            <h1 className="text-2xl font-bold text-gray-900">RWB Dashboard</h1>
-            <span className="px-2 py-1 text-sm bg-blue-100 text-blue-800 rounded-md">Beta</span>
+            {activeSection === 'charts' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <BarChartComponent data={data} />
+              </div>
+            )}
+
+            {activeSection === 'table' && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                {data.length > 0 ? (
+                  <DataTableDynamic data={data} />
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Загрузите данные для отображения таблицы
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeSection === 'archive' && (
+              <div className="space-y-4">
+                {uploadHistory.length > 0 ? (
+                  uploadHistory.map((file) => (
+                    <ArchiveItem
+                      key={file.id}
+                      file={file}
+                      onLoad={handleLoadArchiveFile}
+                      onRename={handleRenameArchive}
+                    />
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Нет сохраненных файлов
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-          <UserMenu />
-        </header>
-
-        {/* Content */}
-        <main className="max-w-6xl mx-auto p-4 sm:p-6">
-          {renderContent()}
-        </main>
+        </div>
       </div>
-
-      {/* Assistant button */}
-      <button
-        onClick={() => setIsAssistantOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 rounded-full flex items-center justify-center text-white shadow-smooth-lg dark:shadow-smooth-dark z-50 transition-all duration-400 ease-in-out-quart"
-        title="Открыть помощника"
-      >
-        <span className="text-2xl">🤖</span>
-      </button>
-
-      {/* Assistant panel */}
-      <AssistantPanel
-        isOpen={isAssistantOpen}
-        onClose={() => setIsAssistantOpen(false)}
-        data={data}
-      />
-      
-      {/* Export panel */}
-      <ExportPanel data={data} />
     </div>
   );
 }
