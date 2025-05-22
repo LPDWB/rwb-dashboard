@@ -1,17 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   images: {
     domains: ['lh3.googleusercontent.com'], // для аватаров Google
   },
   experimental: {
     optimizeCss: true,
-    serverActions: true,
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
 }
 
-export default nextConfig 
+export default nextConfig; 
