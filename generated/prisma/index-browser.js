@@ -173,6 +173,12 @@ exports.Prisma.RequestScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.VerificationTokenScalarFieldEnum = {
+  identifier: 'identifier',
+  token: 'token',
+  expires: 'expires'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -195,7 +201,8 @@ exports.Prisma.ModelName = {
   User: 'User',
   UserProfile: 'UserProfile',
   File: 'File',
-  Request: 'Request'
+  Request: 'Request',
+  VerificationToken: 'VerificationToken'
 };
 
 /**
