@@ -8,6 +8,7 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "credentials",
       credentials: {
+        name: { label: "Имя", type: "text" },
         email: { label: "Email", type: "email" },
         password: { label: "Пароль", type: "password" },
       },
@@ -25,7 +26,11 @@ export const authOptions: NextAuthOptions = {
         if (!isValid) {
           throw new Error("Неверный email или пароль");
         }
-        return { id: user.id, email: user.email, name: user.name };
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+        };
       },
     }),
   ],
@@ -37,29 +42,20 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
       }
       return token;
     },
     async session({ session, token }) {
-      if (token?.id) {
+      if (token) {
         session.user = {
-          ...session.user,
           id: token.id as string,
+          email: token.email as string,
+          name: token.name as string,
         };
       }
       return session;
-    },
-    async redirect({ url, baseUrl }) {
-      // Разрешаем только внутренние редиректы
-      if (url.startsWith("/")) {
-        return `${baseUrl}${url}`;
-      }
-      // Разрешаем редиректы на тот же домен
-      if (new URL(url).origin === baseUrl) {
-        return url;
-      }
-      // По умолчанию редирект на dashboard
-      return `${baseUrl}/dashboard`;
     },
   },
   pages: {

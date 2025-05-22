@@ -1,8 +1,7 @@
 'use client';
 
 import { signIn, useSession } from "next-auth/react";
-import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,29 +18,25 @@ export default function SignIn() {
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  useEffect(() => {
-    if (status === "authenticated") {
-      router.replace("/dashboard");
-    }
-  }, [status, router]);
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
+
     try {
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
       });
+
       if (result?.error) {
         setError(result.error);
       } else {
-        router.replace("/dashboard");
+        router.push("/dashboard");
       }
     } catch (err) {
-      setError("Ошибка входа");
+      setError("Произошла ошибка при входе");
     } finally {
       setIsLoading(false);
     }
@@ -59,52 +54,77 @@ export default function SignIn() {
   }
 
   if (status === "authenticated") {
+    router.push("/dashboard");
     return null;
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-      <RegisterModal open={showRegister} onClose={() => setShowRegister(false)} />
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full space-y-8 p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg"
-      >
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">
             Вход в систему
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Введите логин и пароль для доступа
-          </p>
         </div>
-        <form onSubmit={handleSignIn} className="mt-8 space-y-6">
-          {error && (
-            <div className="flex items-center gap-2 p-3 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg">
-              <AlertCircle className="h-4 w-4" />
-              {error}
-            </div>
-          )}
+        <form className="mt-8 space-y-6" onSubmit={handleSignIn}>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="email">Логин (email)</Label>
-              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required className="mt-1" />
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="mt-1"
+              />
             </div>
             <div>
               <Label htmlFor="password">Пароль</Label>
-              <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required className="mt-1" />
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="mt-1"
+              />
             </div>
           </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Вход..." : "Войти"}
-          </Button>
+
+          {error && (
+            <div className="text-red-500 text-sm flex items-center">
+              <AlertCircle className="w-4 h-4 mr-2" />
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? "Вход..." : "Войти"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => setShowRegister(true)}
+            >
+              Зарегистрироваться
+            </Button>
+          </div>
         </form>
-        <div className="text-center mt-4">
-          <Button variant="outline" className="w-full" onClick={() => setShowRegister(true)}>
-            Зарегистрироваться
-          </Button>
-        </div>
-      </motion.div>
+      </div>
+
+      {showRegister && (
+        <RegisterModal
+          open={showRegister}
+          onClose={() => setShowRegister(false)}
+        />
+      )}
     </div>
   );
 } 

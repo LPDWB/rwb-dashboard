@@ -12,7 +12,11 @@ export default withAuth(
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
-    // В остальных случаях — пропускаем
+    // Если не авторизован и пытается получить доступ к защищенным страницам
+    if (!isAuthed && !isAuthPage) {
+      return NextResponse.redirect(new URL("/auth/signin", req.url));
+    }
+
     return NextResponse.next();
   },
   {
@@ -22,7 +26,10 @@ export default withAuth(
   }
 );
 
-// Защищаем только страницы аутентификации
+// Защищаем все маршруты, кроме публичных
 export const config = {
-  matcher: ["/auth/:path*"],
+  matcher: [
+    "/dashboard/:path*",
+    "/auth/:path*",
+  ],
 };
