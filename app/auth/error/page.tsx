@@ -14,7 +14,7 @@ const errorMessages: Record<string, string> = {
 
 export default function ErrorPage() {
   const searchParams = useSearchParams();
-  const error = searchParams.get("error") || "Default";
+  const error = searchParams?.get("error") || "Default";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
