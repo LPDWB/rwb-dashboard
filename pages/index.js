@@ -1,24 +1,40 @@
 import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
-import DataTable from "../components/DataTable";
-import BarChartComponent from "../components/BarChartComponent";
-import Sidebar from "../components/Sidebar";
-import AssistantPanel from "../components/AssistantPanel";
-import ExportPanel from "../components/ExportPanel";
-import ArchiveItem from "../components/ArchiveItem";
 import dynamic from 'next/dynamic';
 import { useSession } from 'next-auth/react';
 import UserMenu from '../components/UserMenu';
+import Sidebar from "../components/Sidebar";
+
+// Dynamically import components that use browser APIs
+const DataTableDynamic = dynamic(() => import('../components/DataTable'), {
+  ssr: false,
+  loading: () => <div>Loading table...</div>
+});
+
+const BarChartComponent = dynamic(() => import('../components/BarChartComponent'), {
+  ssr: false,
+  loading: () => <div>Loading chart...</div>
+});
+
+const AssistantPanel = dynamic(() => import('../components/AssistantPanel'), {
+  ssr: false,
+  loading: () => <div>Loading assistant...</div>
+});
+
+const ExportPanel = dynamic(() => import('../components/ExportPanel'), {
+  ssr: false,
+  loading: () => <div>Loading export panel...</div>
+});
+
+const ArchiveItem = dynamic(() => import('../components/ArchiveItem'), {
+  ssr: false,
+  loading: () => <div>Loading archive...</div>
+});
 
 const STORAGE_KEYS = {
   ACTIVE_SECTION: 'rwb_active_section',
   UPLOAD_HISTORY: 'rwb_upload_history'
 };
-
-// Dynamically import DataTable to avoid SSR issues
-const DataTableDynamic = dynamic(() => import('../components/DataTable'), {
-  ssr: false,
-});
 
 // Helper function to safely access localStorage
 const getLocalStorage = (key, defaultValue) => {
@@ -50,43 +66,52 @@ export default function Home() {
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [uploadHistory, setUploadHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  // Handle mounting state
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Initialize state from localStorage after mount
   useEffect(() => {
+    if (!mounted) return;
+    
     const savedSection = getLocalStorage(STORAGE_KEYS.ACTIVE_SECTION, 'charts');
     const savedHistory = getLocalStorage(STORAGE_KEYS.UPLOAD_HISTORY, []);
     setActiveSection(savedSection);
     setUploadHistory(savedHistory);
     setIsLoading(false);
-  }, []);
+  }, [mounted]);
 
   // Save active section to localStorage
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && mounted) {
       setLocalStorage(STORAGE_KEYS.ACTIVE_SECTION, activeSection);
     }
-  }, [activeSection, isLoading]);
+  }, [activeSection, isLoading, mounted]);
 
   // Save upload history to localStorage
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && mounted) {
       setLocalStorage(STORAGE_KEYS.UPLOAD_HISTORY, uploadHistory);
     }
-  }, [uploadHistory, isLoading]);
+  }, [uploadHistory, isLoading, mounted]);
 
+  // Theme handling
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (!mounted) return;
     
     if (isDark) {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
-  }, [isDark]);
+  }, [isDark, mounted]);
 
   // Theme preferences
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (!mounted) return;
 
     const savedTheme = window.localStorage.getItem("theme");
     if (savedTheme === "dark") {
@@ -97,10 +122,10 @@ export default function Home() {
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       setIsDark(prefersDark);
     }
-  }, []);
+  }, [mounted]);
 
   const toggleTheme = () => {
-    if (typeof window === 'undefined') return;
+    if (!mounted) return;
     
     const newTheme = !isDark;
     setIsDark(newTheme);
@@ -108,6 +133,8 @@ export default function Home() {
   };
 
   const handleFileUpload = (e) => {
+    if (!mounted) return;
+    
     const file = e.target.files[0];
     if (!file) return;
 
@@ -142,6 +169,8 @@ export default function Home() {
   };
 
   const handleLoadArchiveFile = (file) => {
+    if (!mounted) return;
+    
     // Update last opened timestamp
     setUploadHistory(prev => 
       prev.map(f => 
@@ -157,6 +186,8 @@ export default function Home() {
   };
 
   const handleRenameArchive = (id, newTitle) => {
+    if (!mounted) return;
+    
     setUploadHistory(prev =>
       prev.map(file =>
         file.id === id
@@ -166,12 +197,24 @@ export default function Home() {
     );
   };
 
-  if (status === 'loading') {
+  if (status === 'loading' || !mounted) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">
             Загрузка...
+          </h1>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">
+            Пожалуйста, войдите в систему
           </h1>
         </div>
       </div>
@@ -198,7 +241,7 @@ export default function Home() {
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <p className="text-gray-600 dark:text-gray-300">
-                {session ? `Добро пожаловать, ${session.user?.name || 'Пользователь'}!` : 'Пожалуйста, войдите в систему.'}
+                Добро пожаловать, {session.user?.name || 'Пользователь'}!
               </p>
             </div>
           </div>

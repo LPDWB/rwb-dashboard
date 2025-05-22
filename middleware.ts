@@ -1,8 +1,10 @@
 import { withAuth } from "next-auth/middleware"
+import { NextRequestWithAuth } from "next-auth/middleware"
+import { JWT } from "next-auth/jwt"
 
 export default withAuth({
   callbacks: {
-    authorized: ({ req, token }) => {
+    authorized: ({ req, token }: { req: NextRequestWithAuth, token: JWT | null }) => {
       // Only allow authenticated users
       return !!token
     },
@@ -11,13 +13,9 @@ export default withAuth({
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - api/auth/* (authentication endpoints)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api/auth|_next/static|_next/image|favicon.ico).*)',
-  ],
+    '/dashboard/:path*',
+    '/profile/:path*',
+    '/settings/:path*',
+    '/api/protected/:path*'
+  ]
 } 

@@ -1,4 +1,4 @@
-import NextAuth, { NextAuthOptions, DefaultSession } from 'next-auth';
+import NextAuth, { NextAuthOptions, DefaultSession, Session, User } from 'next-auth';
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from '@/lib/prisma';
@@ -31,7 +31,7 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async session({ session, user }) {
+    async session({ session, user }: { session: Session, user: User }) {
       try {
         if (session?.user) {
           session.user.id = user.id;
@@ -55,11 +55,8 @@ export const authOptions: NextAuthOptions = {
         return session;
       }
     },
-    async redirect({ url, baseUrl }) {
-      // Allows relative callback URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
-      // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url;
+    async redirect({ url, baseUrl }: { url: string, baseUrl: string }) {
+      // Для Vercel всегда возвращаем baseUrl
       return baseUrl;
     },
   },
