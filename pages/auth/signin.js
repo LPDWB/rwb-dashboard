@@ -17,15 +17,15 @@ export default function SignIn() {
   }, []);
 
   useEffect(() => {
-    // Redirect to home page if user is authenticated
+    // Redirect to dashboard if user is authenticated
     if (status === 'authenticated') {
-      router.replace('/');
+      router.replace('/dashboard');
     }
   }, [status, router]);
 
   const handleManualAuth = (userData) => {
-    // Redirect to home page after manual auth
-    router.replace('/');
+    // Redirect to dashboard after manual auth
+    router.replace('/dashboard');
   };
 
   // Show loading state
@@ -66,7 +66,7 @@ export default function SignIn() {
             {googleAuthAvailable ? (
               <>
                 <motion.button
-                  onClick={() => signIn('google', { callbackUrl: '/' })}
+                  onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
                   className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-500 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}

@@ -51,11 +51,20 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Allow relative URLs
-      if (url.startsWith("/")) return url;
-      // Allow URLs from the same origin
-      else if (new URL(url).origin === baseUrl) return url;
-      return baseUrl;
+      // Если URL начинается с /, это относительный URL
+      if (url.startsWith("/")) {
+        // Если это страница входа и пользователь уже авторизован, перенаправляем на dashboard
+        if (url === "/auth/signin") {
+          return `${baseUrl}/dashboard`;
+        }
+        return `${baseUrl}${url}`;
+      }
+      // Если URL с того же домена, разрешаем
+      else if (new URL(url).origin === baseUrl) {
+        return url;
+      }
+      // По умолчанию возвращаем на dashboard
+      return `${baseUrl}/dashboard`;
     },
   },
   pages: {
