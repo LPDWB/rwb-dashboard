@@ -31,28 +31,34 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60,
+    maxAge: 30 * 24 * 60 * 60, // 30 дней
   },
   callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
     async session({ session, token }) {
-      if (token?.sub) {
+      if (token?.id) {
         session.user = {
           ...session.user,
-          id: token.sub,
+          id: token.id as string,
         };
       }
       return session;
     },
     async redirect({ url, baseUrl }) {
-      if (url.startsWith("/auth/")) {
-        return `${baseUrl}/dashboard`;
-      }
+      // Разрешаем только внутренние редиректы
       if (url.startsWith("/")) {
         return `${baseUrl}${url}`;
       }
+      // Разрешаем редиректы на тот же домен
       if (new URL(url).origin === baseUrl) {
         return url;
       }
+      // По умолчанию редирект на dashboard
       return `${baseUrl}/dashboard`;
     },
   },
@@ -60,5 +66,5 @@ export const authOptions: NextAuthOptions = {
     signIn: "/auth/signin",
     error: "/auth/error",
   },
-  debug: process.env.NODE_ENV === "development",
+  debug: true, // Включаем отладку для разработки
 }; 

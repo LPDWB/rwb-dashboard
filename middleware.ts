@@ -11,6 +11,7 @@ export default withAuth(
     if (isAuthed && isAuthPage) {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
+
     // В остальных случаях — пропускаем
     return NextResponse.next();
   },
@@ -21,8 +22,7 @@ export default withAuth(
   }
 );
 
+// Защищаем только страницы аутентификации
 export const config = {
-  matcher: [
-    "/auth/:path*",
-  ],
+  matcher: ["/auth/:path*"],
 };
