@@ -6,7 +6,7 @@ const nextConfig = {
     domains: ['lh3.googleusercontent.com'], // для аватаров Google
   },
   experimental: {
-    optimizeCss: true,
+    optimizeCss: false,
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
