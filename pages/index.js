@@ -209,43 +209,50 @@ export default function Home() {
     );
   }
 
-  if (!session) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">
-            Пожалуйста, войдите в систему
-          </h1>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="flex h-screen">
-        <Sidebar
-          activeSection={activeSection}
-          setActiveSection={setActiveSection}
-          isDark={isDark}
-          toggleTheme={toggleTheme}
-        />
-        
-        <div className="flex-1 overflow-auto">
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">
-                RWB Dashboard
-              </h1>
-              <UserMenu />
+        {session ? (
+          <>
+            <Sidebar
+              activeSection={activeSection}
+              setActiveSection={setActiveSection}
+              isDark={isDark}
+              toggleTheme={toggleTheme}
+            />
+            <div className="flex-1 overflow-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">
+                    RWB Dashboard
+                  </h1>
+                  <UserMenu />
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Добро пожаловать, {session.user?.name || 'Пользователь'}!
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <p className="text-gray-600 dark:text-gray-300">
-                Добро пожаловать, {session.user?.name || 'Пользователь'}!
-              </p>
+          </>
+        ) : (
+          <div className="flex-1 overflow-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">
+                  RWB Dashboard
+                </h1>
+                <UserMenu />
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <p className="text-gray-600 dark:text-gray-300">
+                  Добро пожаловать! Для доступа к полному функционалу, пожалуйста, войдите в систему.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
