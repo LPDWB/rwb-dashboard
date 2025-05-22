@@ -1,4 +1,3 @@
-// middleware.ts
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
@@ -26,10 +25,10 @@ export default withAuth(
   }
 );
 
-// Защищаем все маршруты, кроме публичных
+// Защищаем только приватные маршруты!
 export const config = {
   matcher: [
     "/dashboard/:path*",
-    "/auth/:path*",
+    // Добавь другие приватные маршруты, если нужно
   ],
 };
