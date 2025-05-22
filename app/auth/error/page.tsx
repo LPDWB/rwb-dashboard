@@ -12,7 +12,7 @@ const errorMessages: Record<string, string> = {
   Default: "Неизвестная ошибка",
 };
 
-export default function ErrorPage() {
+function ErrorContent() {
   const searchParams = useSearchParams();
   const error = searchParams?.get("error") || "Default";
 
@@ -37,5 +37,23 @@ export default function ErrorPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ErrorPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+          <div className="animate-pulse">
+            <div className="h-12 w-12 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto"></div>
+            <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded mt-6 mx-auto"></div>
+            <div className="h-4 w-64 bg-gray-200 dark:bg-gray-700 rounded mt-4 mx-auto"></div>
+          </div>
+        </div>
+      }
+    >
+      <ErrorContent />
+    </Suspense>
   );
 } 
