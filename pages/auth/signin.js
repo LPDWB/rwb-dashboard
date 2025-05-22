@@ -1,4 +1,4 @@
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import ManualAuthForm from '../../components/ManualAuthForm';
@@ -8,6 +8,7 @@ export default function SignIn() {
   const [showManualAuth, setShowManualAuth] = useState(false);
   const [googleAuthAvailable, setGoogleAuthAvailable] = useState(true);
   const router = useRouter();
+  const { status } = useSession();
 
   useEffect(() => {
     // Check if Google auth is configured
@@ -15,10 +16,34 @@ export default function SignIn() {
     setGoogleAuthAvailable(!!hasGoogleConfig);
   }, []);
 
+  useEffect(() => {
+    // Redirect to home page if user is authenticated
+    if (status === 'authenticated') {
+      router.push('/');
+    }
+  }, [status, router]);
+
   const handleManualAuth = (userData) => {
     // Redirect to home page after manual auth
     router.push('/');
   };
+
+  // Show loading state
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render the sign-in form if user is authenticated
+  if (status === 'authenticated') {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-100">
