@@ -4,9 +4,7 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { AlertCircle } from 'lucide-react';
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function RegisterModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [email, setEmail] = useState('');
@@ -14,7 +12,7 @@ export default function RegisterModal({ open, onClose }: { open: boolean; onClos
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+  const [success, setSuccess] = useState(false);
 
   if (!open) return null;
 
@@ -33,15 +31,10 @@ export default function RegisterModal({ open, onClose }: { open: boolean; onClos
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Ошибка регистрации');
-      // Автоматический вход после регистрации
-      const loginRes = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      });
-      if (loginRes?.error) throw new Error(loginRes.error);
-      onClose();
-      router.replace('/dashboard');
+      setSuccess(true);
+      setEmail('');
+      setName('');
+      setPassword('');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -54,28 +47,35 @@ export default function RegisterModal({ open, onClose }: { open: boolean; onClos
       <form onSubmit={handleRegister} className="max-w-md w-full space-y-8 p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg relative">
         <button type="button" onClick={onClose} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">✕</button>
         <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white">Регистрация</h2>
-        {error && (
+        {success ? (
+          <div className="flex flex-col items-center gap-2 p-3 text-green-600 bg-green-50 dark:bg-green-900/20 rounded-lg">
+            <CheckCircle2 className="h-6 w-6" />
+            <span>Регистрация успешна! Теперь вы можете войти.</span>
+          </div>
+        ) : error && (
           <div className="flex items-center gap-2 p-3 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg">
             <AlertCircle className="h-4 w-4" />
             {error}
           </div>
         )}
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="name">Имя</Label>
-            <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required className="mt-1" />
+        {!success && (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="name">Имя</Label>
+              <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required className="mt-1" />
+            </div>
+            <div>
+              <Label htmlFor="email">Логин (email)</Label>
+              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required className="mt-1" />
+            </div>
+            <div>
+              <Label htmlFor="password">Пароль</Label>
+              <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required className="mt-1" />
+            </div>
           </div>
-          <div>
-            <Label htmlFor="email">Логин (email)</Label>
-            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required className="mt-1" />
-          </div>
-          <div>
-            <Label htmlFor="password">Пароль</Label>
-            <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required className="mt-1" />
-          </div>
-        </div>
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? 'Создание...' : 'Зарегистрироваться'}
+        )}
+        <Button type="submit" className="w-full" disabled={isLoading || success}>
+          {isLoading ? 'Создание...' : success ? 'Готово' : 'Зарегистрироваться'}
         </Button>
       </form>
     </div>
