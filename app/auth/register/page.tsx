@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
+import { signIn } from 'next-auth/react';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -20,6 +21,9 @@ export default function RegisterPage() {
     setError('');
     setIsLoading(true);
     try {
+      if (!name.trim()) throw new Error('Имя обязательно');
+      if (!email.trim()) throw new Error('Логин (email) обязателен');
+      if (password.length < 6) throw new Error('Пароль должен быть не менее 6 символов');
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -27,7 +31,14 @@ export default function RegisterPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Ошибка регистрации');
-      router.replace('/auth/signin');
+      // Автоматический вход после регистрации
+      const loginRes = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
+      if (loginRes?.error) throw new Error(loginRes.error);
+      router.replace('/dashboard');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -47,12 +58,12 @@ export default function RegisterPage() {
         )}
         <div className="space-y-4">
           <div>
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required className="mt-1" />
-          </div>
-          <div>
             <Label htmlFor="name">Имя</Label>
             <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required className="mt-1" />
+          </div>
+          <div>
+            <Label htmlFor="email">Логин (email)</Label>
+            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required className="mt-1" />
           </div>
           <div>
             <Label htmlFor="password">Пароль</Label>

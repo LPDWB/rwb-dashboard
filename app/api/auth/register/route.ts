@@ -8,6 +8,9 @@ export async function POST(req: NextRequest) {
     if (!email || !password || !name) {
       return NextResponse.json({ message: 'Все поля обязательны' }, { status: 400 });
     }
+    if (password.length < 6) {
+      return NextResponse.json({ message: 'Пароль должен быть не менее 6 символов' }, { status: 400 });
+    }
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       return NextResponse.json({ message: 'Пользователь с таким email уже существует' }, { status: 400 });
