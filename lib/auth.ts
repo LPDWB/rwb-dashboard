@@ -80,23 +80,18 @@ export const authOptions: NextAuthOptions = {
       }
       return true;
     },
-    async session({ session, user }) {
-      if (session?.user) {
-        session.user.id = user.id;
-        
-        // Create user profile if it doesn't exist
-        const profile = await prisma.userProfile.findUnique({
-          where: { userId: user.id },
-        });
-        
-        if (!profile) {
-          await prisma.userProfile.create({
-            data: {
-              userId: user.id,
-            },
-          });
-        }
+    async session({ session, token }) {
+      // Если session.user.id уже есть — возвращаем сессию как есть
+      if (session?.user?.id) return session;
+      // Если стратегия jwt — userId в token.sub
+      if (token?.sub) {
+        session.user = {
+          ...session.user,
+          id: token.sub,
+        };
+        return session;
       }
+      // Если стратегия database — userId уже должен быть в session.user.id
       return session;
     },
     async redirect({ url, baseUrl }) {
