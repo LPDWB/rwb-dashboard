@@ -1,5 +1,8 @@
+'use client';
+
 import { Metadata } from "next";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 
@@ -21,12 +24,9 @@ const errorMessages: Record<string, string> = {
   Default: "Неизвестная ошибка",
 };
 
-export default function AuthErrorPage({
-  searchParams,
-}: {
-  searchParams: { error?: string };
-}) {
-  const error = searchParams.error || "Default";
+export default function AuthErrorPage() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get('error') || "Default";
   const errorMessage = errorMessages[error] || errorMessages.Default;
 
   return (
