@@ -1,5 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 
@@ -25,6 +26,35 @@ export const authOptions: NextAuthOptions = {
           access_type: "offline",
           response_type: "code",
         },
+      },
+    }),
+    CredentialsProvider({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        name: { label: "Name", type: "text" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.name) {
+          throw new Error("Email and name are required");
+        }
+
+        // Check if user exists
+        let user = await prisma.user.findUnique({
+          where: { email: credentials.email },
+        });
+
+        // If user doesn't exist, create one
+        if (!user) {
+          user = await prisma.user.create({
+            data: {
+              email: credentials.email,
+              name: credentials.name,
+            },
+          });
+        }
+
+        return user;
       },
     }),
   ],
