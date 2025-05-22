@@ -1,15 +1,9 @@
 'use client';
 
-import { Metadata } from "next";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
-
-export const metadata: Metadata = {
-  title: "Ошибка авторизации | RWB Dashboard",
-  description: "Страница ошибки авторизации",
-};
 
 const errorMessages: Record<string, string> = {
   OAuthAccountNotLinked: "Эта учетная запись Google уже связана с другим пользователем",
