@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import { AlertCircle } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 
 export default function SignInPage() {
-  const [email, setEmail] = useState('');
+  const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -20,10 +21,10 @@ export default function SignInPage() {
     setError('');
     setIsLoading(true);
     try {
-      if (!email.trim()) throw new Error('Логин (email) обязателен');
+      if (!login.trim()) throw new Error('Логин обязателен');
       if (password.length < 6) throw new Error('Пароль должен быть не менее 6 символов');
       const loginRes = await signIn('credentials', {
-        email,
+        login,
         password,
         redirect: false,
       });
@@ -48,17 +49,24 @@ export default function SignInPage() {
         )}
         <div className="space-y-4">
           <div>
-            <Label htmlFor="email">Логин (email)</Label>
-            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required className="mt-1" />
+            <Label htmlFor="login">Логин</Label>
+            <Input id="login" type="text" value={login} onChange={e => setLogin(e.target.value)} required className="mt-1" />
           </div>
           <div>
             <Label htmlFor="password">Пароль</Label>
             <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required className="mt-1" />
           </div>
         </div>
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? 'Вход...' : 'Войти'}
-        </Button>
+        <div className="flex gap-2 mt-4">
+          <Button type="submit" className="w-1/2" disabled={isLoading}>
+            {isLoading ? 'Вход...' : 'Log in'}
+          </Button>
+          <Link href="/auth/register" className="w-1/2">
+            <Button type="button" variant="outline" className="w-full">
+              Sign up
+            </Button>
+          </Link>
+        </div>
       </form>
     </div>
   );

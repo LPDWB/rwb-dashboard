@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import { AlertCircle } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 
 export default function RegisterPage() {
-  const [email, setEmail] = useState('');
+  const [login, setLogin] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -22,18 +23,18 @@ export default function RegisterPage() {
     setIsLoading(true);
     try {
       if (!name.trim()) throw new Error('Имя обязательно');
-      if (!email.trim()) throw new Error('Логин (email) обязателен');
+      if (!login.trim()) throw new Error('Логин обязателен');
       if (password.length < 6) throw new Error('Пароль должен быть не менее 6 символов');
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name, password }),
+        body: JSON.stringify({ login, name, password }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Ошибка регистрации');
       // Автоматический вход после регистрации
       const loginRes = await signIn('credentials', {
-        email,
+        login,
         password,
         redirect: false,
       });
@@ -62,8 +63,8 @@ export default function RegisterPage() {
             <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required className="mt-1" />
           </div>
           <div>
-            <Label htmlFor="email">Логин (email)</Label>
-            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required className="mt-1" />
+            <Label htmlFor="login">Логин</Label>
+            <Input id="login" type="text" value={login} onChange={e => setLogin(e.target.value)} required className="mt-1" />
           </div>
           <div>
             <Label htmlFor="password">Пароль</Label>
@@ -73,6 +74,12 @@ export default function RegisterPage() {
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? 'Создание...' : 'Зарегистрироваться'}
         </Button>
+        <div className="text-center mt-2">
+          Уже есть аккаунт?{' '}
+          <Link href="/auth/signin" className="text-blue-600 hover:underline">
+            Войти
+          </Link>
+        </div>
       </form>
     </div>
   );

@@ -1,34 +1,32 @@
-import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
-export const authOptions: NextAuthOptions = {
+export const authOptions = {
   providers: [
     CredentialsProvider({
       name: "credentials",
       credentials: {
-        name: { label: "Имя", type: "text" },
-        email: { label: "Email", type: "email" },
+        login: { label: "Логин", type: "text" },
         password: { label: "Пароль", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Email и пароль обязательны");
+        if (!credentials?.login || !credentials?.password) {
+          throw new Error("Логин и пароль обязательны");
         }
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+          where: { login: credentials.login },
         });
         if (!user || !user.password) {
-          throw new Error("Неверный email или пароль");
+          throw new Error("Неверный логин или пароль");
         }
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) {
-          throw new Error("Неверный email или пароль");
+          throw new Error("Неверный логин или пароль");
         }
         return {
           id: user.id,
-          email: user.email,
+          login: user.login,
           name: user.name,
         };
       },
@@ -36,31 +34,31 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 дней
+    maxAge: 30 * 24 * 60 * 60,
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user }: { token: any, user?: any }) {
       if (user) {
         token.id = user.id;
-        token.email = user.email;
+        token.login = user.login;
         token.name = user.name;
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: any, token: any }) {
       if (token) {
         session.user = {
           id: token.id as string,
-          email: token.email as string,
+          login: token.login as string,
           name: token.name as string,
         };
       }
       return session;
-    },
+    },  
   },
   pages: {
     signIn: "/auth/signin",
     error: "/auth/error",
   },
-  debug: true, // Включаем отладку для разработки
-}; 
+  debug: true,
+};

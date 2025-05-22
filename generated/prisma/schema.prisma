@@ -45,6 +45,7 @@ model Session {
 model User {
   id            String       @id @default(cuid())
   name          String?
+  login         String?      @unique // <--- Должно быть! 
   email         String?      @unique
   emailVerified DateTime?
   image         String?
