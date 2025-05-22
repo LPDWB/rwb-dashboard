@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
+import { Suspense } from "react";
 
 const errorMessages: Record<string, string> = {
   OAuthAccountNotLinked: "Эта учетная запись Google уже связана с другим пользователем",
@@ -18,7 +19,7 @@ const errorMessages: Record<string, string> = {
   Default: "Неизвестная ошибка",
 };
 
-export default function AuthErrorPage() {
+function ErrorContent() {
   const searchParams = useSearchParams();
   const error = searchParams?.get('error') || "Default";
   const errorMessage = errorMessages[error] || errorMessages.Default;
@@ -46,5 +47,21 @@ export default function AuthErrorPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="animate-pulse">
+          <div className="h-12 w-12 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto"></div>
+          <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded mt-6 mx-auto"></div>
+          <div className="h-4 w-64 bg-gray-200 dark:bg-gray-700 rounded mt-4 mx-auto"></div>
+        </div>
+      </div>
+    }>
+      <ErrorContent />
+    </Suspense>
   );
 } 
