@@ -1,21 +1,7 @@
 import { withAuth } from "next-auth/middleware"
-import { NextRequestWithAuth } from "next-auth/middleware"
-import { JWT } from "next-auth/jwt"
 
-export default withAuth({
-  callbacks: {
-    authorized: ({ req, token }: { req: NextRequestWithAuth, token: JWT | null }) => {
-      // Only allow authenticated users
-      return !!token
-    },
-  },
-})
+export default withAuth()
 
 export const config = {
-  matcher: [
-    '/dashboard/:path*',
-    '/profile/:path*',
-    '/settings/:path*',
-    '/api/protected/:path*'
-  ]
+  matcher: ["/dashboard", "/profile", "/upload"],
 } 
