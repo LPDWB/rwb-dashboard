@@ -29,6 +29,27 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async signIn({ user, account, profile }) {
+      if (account?.provider === "google") {
+        // Проверяем, существует ли пользователь
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email! },
+        });
+
+        if (!existingUser) {
+          // Создаем нового пользователя
+          await prisma.user.create({
+            data: {
+              email: user.email!,
+              name: user.name,
+              image: user.image,
+            },
+          });
+        }
+        return true;
+      }
+      return true;
+    },
     async session({ session, user }) {
       if (session?.user) {
         session.user.id = user.id;
@@ -49,19 +70,19 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Handle relative URLs
+      // Всегда редиректим на dashboard после успешной авторизации
+      if (url.startsWith("/auth/")) {
+        return `${baseUrl}/dashboard`;
+      }
+      // Для других относительных URL
       if (url.startsWith("/")) {
-        // If it's the sign-in page and user is authenticated, redirect to dashboard
-        if (url === "/auth/signin") {
-          return `${baseUrl}/dashboard`;
-        }
         return `${baseUrl}${url}`;
       }
-      // Handle absolute URLs from the same origin
-      else if (new URL(url).origin === baseUrl) {
+      // Для абсолютных URL с того же домена
+      if (new URL(url).origin === baseUrl) {
         return url;
       }
-      // Default redirect to dashboard
+      // По умолчанию на dashboard
       return `${baseUrl}/dashboard`;
     },
   },
