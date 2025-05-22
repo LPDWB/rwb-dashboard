@@ -59,31 +59,8 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
-      if (account?.provider === "google") {
-        // Проверяем, существует ли пользователь
-        const existingUser = await prisma.user.findUnique({
-          where: { email: user.email! },
-        });
-
-        if (!existingUser) {
-          // Создаем нового пользователя
-          await prisma.user.create({
-            data: {
-              email: user.email!,
-              name: user.name,
-              image: user.image,
-            },
-          });
-        }
-        return true;
-      }
-      return true;
-    },
     async session({ session, token }) {
-      // Если session.user.id уже есть — возвращаем сессию как есть
       if (session?.user?.id) return session;
-      // Если стратегия jwt — userId в token.sub
       if (token?.sub) {
         session.user = {
           ...session.user,
@@ -91,23 +68,18 @@ export const authOptions: NextAuthOptions = {
         };
         return session;
       }
-      // Если стратегия database — userId уже должен быть в session.user.id
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Всегда редиректим на dashboard после успешной авторизации
       if (url.startsWith("/auth/")) {
         return `${baseUrl}/dashboard`;
       }
-      // Для других относительных URL
       if (url.startsWith("/")) {
         return `${baseUrl}${url}`;
       }
-      // Для абсолютных URL с того же домена
       if (new URL(url).origin === baseUrl) {
         return url;
       }
-      // По умолчанию на dashboard
       return `${baseUrl}/dashboard`;
     },
   },
