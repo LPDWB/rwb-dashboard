@@ -6,11 +6,11 @@ const nextConfig = {
     domains: ['lh3.googleusercontent.com'], // для аватаров Google
   },
   experimental: {
-    optimizeCss: false,
+    optimizeCss: true,
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
 }
 
-module.exports = nextConfig 
+export default nextConfig 
