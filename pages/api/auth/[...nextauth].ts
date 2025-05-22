@@ -32,31 +32,29 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async session({ session, user }: { session: Session, user: User }) {
-      try {
-        if (session?.user) {
-          session.user.id = user.id;
-          
-          // Create user profile if it doesn't exist
-          const profile = await prisma.userProfile.findUnique({
-            where: { userId: user.id },
+      if (session?.user) {
+        session.user.id = user.id;
+        
+        // Create user profile if it doesn't exist
+        const profile = await prisma.userProfile.findUnique({
+          where: { userId: user.id },
+        });
+        
+        if (!profile) {
+          await prisma.userProfile.create({
+            data: {
+              userId: user.id,
+            },
           });
-          
-          if (!profile) {
-            await prisma.userProfile.create({
-              data: {
-                userId: user.id,
-              },
-            });
-          }
         }
-        return session;
-      } catch (error) {
-        console.error('Error in session callback:', error);
-        return session;
       }
+      return session;
     },
-    async redirect({ url, baseUrl }: { url: string, baseUrl: string }) {
-      // Для Vercel всегда возвращаем baseUrl
+    async redirect({ url, baseUrl }) {
+      // Allow relative URLs
+      if (url.startsWith("/")) return url;
+      // Allow URLs from the same origin
+      else if (new URL(url).origin === baseUrl) return url;
       return baseUrl;
     },
   },

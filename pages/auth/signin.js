@@ -19,13 +19,13 @@ export default function SignIn() {
   useEffect(() => {
     // Redirect to home page if user is authenticated
     if (status === 'authenticated') {
-      router.push('/');
+      router.replace('/');
     }
   }, [status, router]);
 
   const handleManualAuth = (userData) => {
     // Redirect to home page after manual auth
-    router.push('/');
+    router.replace('/');
   };
 
   // Show loading state
